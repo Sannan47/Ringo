@@ -37,17 +37,7 @@ export async function POST(request) {
       email: user.email,
       role: user.role,
     });
-    const cookieStore = await cookies();
-
-    cookieStore.set("token", token, {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 60 * 60 * 24 * 7,
-      path: "/",
-    });
-
-    return NextResponse.json(
+    const response = NextResponse.json(
       {
         message: "Login successful",
         user: {
@@ -61,6 +51,16 @@ export async function POST(request) {
       },
       { status: 200 }
     );
+
+    response.cookies.set("token", token, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 60 * 60 * 24 * 7,
+      path: "/",
+    });
+
+    return response;
   } catch (error) {
     return NextResponse.json({ message: "Something went wrong" }, { status: 500 });
   }

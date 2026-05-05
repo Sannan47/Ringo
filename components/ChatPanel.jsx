@@ -1,44 +1,44 @@
-// Mock messages for static chat layout.
-const messages = [
-  {
-    id: 1,
-    user: "Aisha",
-    text: "Morning! Who is taking the release notes today?",
-    time: "09:12",
-  },
-  {
-    id: 2,
-    user: "Marco",
-    text: "I can handle it after standup.",
-    time: "09:13",
-  },
-  {
-    id: 3,
-    user: "Lena",
-    text: "Channel backlog looks good. Need help with QA?",
-    time: "09:15",
-  },
-  {
-    id: 4,
-    user: "Devon",
-    text: "QA is clear. We can push the build after lunch.",
-    time: "09:18",
-  },
-  {
-    id: 5,
-    user: "Rami",
-    text: "Can someone review the new channel permissions?",
-    time: "09:21",
-  },
-  {
-    id: 6,
-    user: "Aisha",
-    text: "On it. I will share feedback in 10 mins.",
-    time: "09:22",
-  },
-];
+"use client";
 
-export default function ChatPanel() {
+import { useEffect, useMemo, useRef, useState } from "react";
+
+export default function ChatPanel({
+  selectedChannel,
+  messages,
+  isLoading,
+  onSendMessage,
+}) {
+  const [messageText, setMessageText] = useState("");
+  const endRef = useRef(null);
+  const formattedMessages = useMemo(
+    () =>
+      messages.map((message) => ({
+        ...message,
+        time: message.createdAt
+          ? new Date(message.createdAt).toISOString().slice(11, 16)
+          : "--:--",
+      })),
+    [messages]
+  );
+
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [formattedMessages]);
+
+  const handleSubmit = async () => {
+    const trimmed = messageText.trim();
+
+    if (!trimmed || !selectedChannel) {
+      return;
+    }
+
+    const sent = await onSendMessage(trimmed);
+
+    if (sent) {
+      setMessageText("");
+    }
+  };
+
   return (
     <section className="flex h-full flex-1 flex-col bg-slate-950">
       <header className="border-b border-slate-800 px-6 py-4">
@@ -47,32 +47,43 @@ export default function ChatPanel() {
             <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
               Active channel
             </p>
-            <h2 className="text-lg font-semibold text-white">#general</h2>
+            <h2 className="text-lg font-semibold text-white">
+              {selectedChannel ? `#${selectedChannel.name}` : "Select a channel"}
+            </h2>
           </div>
           <span className="rounded-full bg-slate-800 px-3 py-1 text-xs text-slate-300">
-            12 online
+            {selectedChannel ? "Connected" : "Idle"}
           </span>
         </div>
       </header>
 
       <div className="flex-1 overflow-y-auto px-6 py-6">
         <div className="space-y-6">
-          {messages.map((message) => (
+          {isLoading ? (
+            <p className="text-sm text-slate-400">Loading messages...</p>
+          ) : null}
+          {!isLoading && formattedMessages.length === 0 ? (
+            <p className="text-sm text-slate-500">
+              No messages yet. Say hello!
+            </p>
+          ) : null}
+          {formattedMessages.map((message) => (
             <div key={message.id} className="flex gap-4">
               <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-800 text-sm font-semibold text-slate-100">
-                {message.user.slice(0, 1)}
+                {message.sender?.name?.slice(0, 1) || "?"}
               </div>
               <div className="flex-1">
                 <div className="flex items-baseline gap-2">
                   <p className="text-sm font-semibold text-white">
-                    {message.user}
+                    {message.sender?.name || "Unknown"}
                   </p>
                   <span className="text-xs text-slate-500">{message.time}</span>
                 </div>
-                <p className="mt-1 text-sm text-slate-300">{message.text}</p>
+                <p className="mt-1 text-sm text-slate-300">{message.content}</p>
               </div>
             </div>
           ))}
+          <div ref={endRef} />
         </div>
       </div>
 
@@ -81,11 +92,21 @@ export default function ChatPanel() {
           <input
             type="text"
             placeholder="Send a message"
+            value={messageText}
+            onChange={(event) => setMessageText(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                handleSubmit();
+              }
+            }}
             className="flex-1 bg-transparent text-sm text-slate-200 placeholder:text-slate-500 focus:outline-none"
           />
           <button
             type="button"
-            className="rounded-xl bg-sky-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-400"
+            onClick={handleSubmit}
+            disabled={!messageText.trim() || !selectedChannel}
+            className="rounded-xl bg-sky-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-60"
           >
             Send
           </button>

@@ -1,8 +1,16 @@
-// Mock data for static sidebar layout.
-const servers = ["Dev Team", "Gaming", "Study Group"];
-const channels = ["general", "random", "help"];
+"use client";
 
-export default function Sidebar() {
+export default function Sidebar({
+  servers,
+  channels,
+  selectedServerId,
+  selectedChannelId,
+  onSelectServer,
+  onSelectChannel,
+  onCreateServer,
+  onCreateChannel,
+  isLoadingChannels,
+}) {
   return (
     <aside className="flex h-full w-20 flex-col border-r border-slate-800 bg-slate-900 text-slate-100 sm:w-64">
       <div className="flex items-center justify-center border-b border-slate-800 px-4 py-4 sm:justify-start">
@@ -22,17 +30,29 @@ export default function Sidebar() {
           <div className="mt-3 space-y-2">
             {servers.map((server) => (
               <button
-                key={server}
+                key={server.id}
                 type="button"
-                className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm text-slate-200 transition hover:bg-slate-800"
+                onClick={() => onSelectServer(server.id)}
+                className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm transition ${
+                  selectedServerId === server.id
+                    ? "bg-slate-800 text-white"
+                    : "text-slate-200 hover:bg-slate-800"
+                }`}
               >
                 <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-800 text-xs font-semibold text-slate-200">
-                  {server.slice(0, 2).toUpperCase()}
+                  {server.name.slice(0, 2).toUpperCase()}
                 </span>
-                <span className="hidden sm:inline">{server}</span>
+                <span className="hidden sm:inline">{server.name}</span>
               </button>
             ))}
           </div>
+          <button
+            type="button"
+            onClick={onCreateServer}
+            className="mt-4 w-full rounded-xl border border-dashed border-slate-700 px-3 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 transition hover:border-slate-500 hover:text-slate-200"
+          >
+            + Create Server
+          </button>
         </div>
 
         <div className="mt-6">
@@ -40,21 +60,38 @@ export default function Sidebar() {
             Channels
           </p>
           <div className="mt-3 space-y-1">
-            {channels.map((channel, index) => (
+            {isLoadingChannels ? (
+              <p className="px-3 py-2 text-xs text-slate-500">Loading...</p>
+            ) : null}
+            {channels.length === 0 ? (
+              <p className="px-3 py-2 text-xs text-slate-500">
+                No channels yet.
+              </p>
+            ) : null}
+            {channels.map((channel) => (
               <button
-                key={channel}
+                key={channel.id}
                 type="button"
+                onClick={() => onSelectChannel(channel.id)}
                 className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition ${
-                  index === 0
+                  selectedChannelId === channel.id
                     ? "bg-slate-800 text-white"
                     : "text-slate-300 hover:bg-slate-800/70"
                 }`}
               >
                 <span className="text-slate-500">#</span>
-                <span className="hidden sm:inline">{channel}</span>
+                <span className="hidden sm:inline">{channel.name}</span>
               </button>
             ))}
           </div>
+          <button
+            type="button"
+            onClick={onCreateChannel}
+            disabled={!selectedServerId}
+            className="mt-3 w-full rounded-xl border border-dashed border-slate-700 px-3 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 transition hover:border-slate-500 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            + Create Channel
+          </button>
         </div>
       </div>
     </aside>
