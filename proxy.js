@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { verifyAuthToken } from "./lib/auth";
+import { verifyToken } from "./lib/auth";
 
 export function proxy(request) {
   const { pathname } = request.nextUrl;
@@ -9,16 +9,14 @@ export function proxy(request) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  let payload;
+  const payload = verifyToken(token);
 
-  try {
-    payload = verifyAuthToken(token);
-  } catch (error) {
+  if (!payload) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
   if (pathname.startsWith("/admin") && payload.role !== "admin") {
-    return NextResponse.redirect(new URL("/login", request.url));
+    return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
   return NextResponse.next();
