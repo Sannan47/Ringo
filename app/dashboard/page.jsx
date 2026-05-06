@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Sidebar from "../../components/Sidebar";
 import ChatPanel from "../../components/ChatPanel";
+import useSocket from "../../hooks/useSocket";
 
 export default function DashboardPage() {
   const [servers, setServers] = useState([]);
@@ -12,6 +13,9 @@ export default function DashboardPage() {
   const [selectedChannelId, setSelectedChannelId] = useState(null);
   const [isLoadingChannels, setIsLoadingChannels] = useState(false);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+  const [onlineCount, setOnlineCount] = useState(0);
+  const [typingUsers, setTypingUsers] = useState([]);
+  const socket = useSocket(true);
 
   const selectedChannel = useMemo(
     () => channels.find((channel) => channel.id === selectedChannelId) || null,
@@ -82,6 +86,8 @@ export default function DashboardPage() {
     const loadMessages = async () => {
       if (!selectedChannelId) {
         setMessages([]);
+        setTypingUsers([]);
+        setOnlineCount(0);
         return;
       }
 
@@ -105,6 +111,79 @@ export default function DashboardPage() {
 
     loadMessages();
   }, [selectedChannelId]);
+
+  useEffect(() => {
+    if (!socket || !selectedChannelId) {
+      return undefined;
+    }
+
+    socket.emit("join_channel", { channelId: selectedChannelId });
+
+    const handleOnlineCount = ({ channelId, count }) => {
+      if (channelId === selectedChannelId) {
+        setOnlineCount(count);
+      }
+    };
+
+    const handleReceiveMessage = (message) => {
+      if (message.channelId !== selectedChannelId) {
+        return;
+      }
+
+      setMessages((prev) => {
+        if (prev.some((existing) => existing.id === message.id)) {
+          return prev;
+        }
+        return [...prev, message];
+      });
+    };
+
+    const handleTyping = ({ channelId, user }) => {
+      if (channelId !== selectedChannelId || !user) {
+        return;
+      }
+
+      setTypingUsers((prev) => {
+        if (prev.some((entry) => entry.id === user.id)) {
+          return prev;
+        }
+        return [...prev, { id: user.id, name: user.name }];
+      });
+    };
+
+    const handleStopTyping = ({ channelId, userId }) => {
+      if (channelId !== selectedChannelId) {
+        return;
+      }
+
+      setTypingUsers((prev) => prev.filter((entry) => entry.id !== userId));
+    };
+
+    socket.on("receive_message", handleReceiveMessage);
+    socket.on("online_count", handleOnlineCount);
+    socket.on("typing", handleTyping);
+    socket.on("stop_typing", handleStopTyping);
+
+    return () => {
+      socket.emit("leave_channel", { channelId: selectedChannelId });
+      socket.off("receive_message", handleReceiveMessage);
+      socket.off("online_count", handleOnlineCount);
+      socket.off("typing", handleTyping);
+      socket.off("stop_typing", handleStopTyping);
+      setTypingUsers([]);
+      setOnlineCount(0);
+    };
+  }, [socket, selectedChannelId]);
+
+  const handleTyping = (isTyping) => {
+    if (!socket || !selectedChannelId) {
+      return;
+    }
+
+    socket.emit(isTyping ? "typing" : "stop_typing", {
+      channelId: selectedChannelId,
+    });
+  };
 
   const handleCreateServer = async () => {
     const name = window.prompt("Server name");
@@ -165,29 +244,16 @@ export default function DashboardPage() {
       return false;
     }
 
-    try {
-      const response = await fetch("/api/messages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content, channelId: selectedChannelId }),
-      });
-      const data = await response.json();
-
-      if (response.ok) {
-        const optimisticMessage = {
-          id: data.message._id,
-          content: data.message.content,
-          createdAt: data.message.createdAt,
-          sender: { name: "You" },
-        };
-        setMessages((prev) => [...prev, optimisticMessage]);
-        return true;
-      }
-    } catch (error) {
+    if (!socket) {
       return false;
     }
 
-    return false;
+    socket.emit("send_message", {
+      channelId: selectedChannelId,
+      content,
+    });
+
+    return true;
   };
 
   return (
@@ -207,6 +273,9 @@ export default function DashboardPage() {
         selectedChannel={selectedChannel}
         messages={messages}
         isLoading={isLoadingMessages || isLoadingChannels}
+        onlineCount={onlineCount}
+        typingUsers={typingUsers}
+        onTyping={handleTyping}
         onSendMessage={handleSendMessage}
       />
     </div>

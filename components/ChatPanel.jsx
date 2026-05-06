@@ -6,10 +6,14 @@ export default function ChatPanel({
   selectedChannel,
   messages,
   isLoading,
+  onlineCount,
+  typingUsers,
+  onTyping,
   onSendMessage,
 }) {
   const [messageText, setMessageText] = useState("");
   const endRef = useRef(null);
+  const typingTimeoutRef = useRef(null);
   const formattedMessages = useMemo(
     () =>
       messages.map((message) => ({
@@ -25,6 +29,20 @@ export default function ChatPanel({
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [formattedMessages]);
 
+  const clearTypingTimer = () => {
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = null;
+    }
+  };
+
+  const scheduleStopTyping = () => {
+    clearTypingTimer();
+    typingTimeoutRef.current = setTimeout(() => {
+      onTyping?.(false);
+    }, 1200);
+  };
+
   const handleSubmit = async () => {
     const trimmed = messageText.trim();
 
@@ -32,12 +50,16 @@ export default function ChatPanel({
       return;
     }
 
+    onTyping?.(false);
+
     const sent = await onSendMessage(trimmed);
 
     if (sent) {
       setMessageText("");
     }
   };
+
+  useEffect(() => () => clearTypingTimer(), []);
 
   return (
     <section className="flex h-full flex-1 flex-col bg-slate-950">
@@ -52,7 +74,7 @@ export default function ChatPanel({
             </h2>
           </div>
           <span className="rounded-full bg-slate-800 px-3 py-1 text-xs text-slate-300">
-            {selectedChannel ? "Connected" : "Idle"}
+            {selectedChannel ? `${onlineCount} online` : "Idle"}
           </span>
         </div>
       </header>
@@ -88,12 +110,24 @@ export default function ChatPanel({
       </div>
 
       <div className="border-t border-slate-800 px-6 py-4">
+        {typingUsers.length > 0 ? (
+          <div className="mb-3 text-xs text-slate-400">
+            {typingUsers.length === 1
+              ? `${typingUsers[0].name} is typing...`
+              : `${typingUsers.map((user) => user.name).join(", ")} are typing...`}
+          </div>
+        ) : null}
         <div className="flex items-center gap-3 rounded-2xl border border-slate-800 bg-slate-900/70 px-4 py-3">
           <input
             type="text"
             placeholder="Send a message"
             value={messageText}
-            onChange={(event) => setMessageText(event.target.value)}
+            onChange={(event) => {
+              setMessageText(event.target.value);
+              onTyping?.(true);
+              scheduleStopTyping();
+            }}
+            onBlur={() => onTyping?.(false)}
             onKeyDown={(event) => {
               if (event.key === "Enter") {
                 event.preventDefault();
