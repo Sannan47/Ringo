@@ -60,7 +60,7 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        setServerError(data?.message || "Login failed");
+        setServerError(data?.error || data?.message || "Login failed");
         return;
       }
 
@@ -151,6 +151,11 @@ export default function LoginPage() {
                   {errors.password}
                 </p>
               )}
+              <div className="text-right text-xs">
+                <Link className="font-semibold text-sky-700" href="/forgot-password">
+                  Forgot password?
+                </Link>
+              </div>
             </div>
 
             <button
