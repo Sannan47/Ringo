@@ -12,16 +12,19 @@ export async function GET(request) {
 
   try {
     await connectDb();
-    const users = await User.find({}, "name email role").lean();
+    const users = await User.find({}, "name email role isActive createdAt")
+      .sort({ createdAt: -1 })
+      .lean();
 
     const formatted = users.map((user) => ({
       id: user._id.toString(),
       name: user.name,
       email: user.email,
       role: user.role,
+      isActive: Boolean(user.isActive),
     }));
 
-    return NextResponse.json({ users: formatted }, { status: 200 });
+    return NextResponse.json(formatted, { status: 200 });
   } catch (error) {
     return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
   }

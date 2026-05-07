@@ -22,8 +22,12 @@ export async function POST(request) {
 
     const user = await User.findOne({ email: values.normalizedEmail });
 
-    if (!user || !user.isActive) {
+    if (!user) {
       return NextResponse.json({ message: "Invalid credentials" }, { status: 401 });
+    }
+
+    if (!user.isActive) {
+      return NextResponse.json({ error: "Account disabled" }, { status: 403 });
     }
 
     const isMatch = await comparePassword(values.rawPassword, user.password);

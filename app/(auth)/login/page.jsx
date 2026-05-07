@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../../context/AuthContext";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -67,7 +67,7 @@ export default function LoginPage() {
       if (data?.user) {
         setUser(data.user);
       }
-      router.push("/dashboard");
+      router.push(data?.user?.role === "admin" ? "/admin" : "/dashboard");
     } catch (error) {
       setServerError("Something went wrong. Please try again.");
     } finally {

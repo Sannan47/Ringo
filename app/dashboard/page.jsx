@@ -72,7 +72,7 @@ export default function DashboardPage() {
 
         if (response.ok) {
           const normalized = (data.channels || []).map((channel) => ({
-            id: channel._id,
+            id: channel.id || channel._id,
             name: channel.name,
           }));
           setChannels(normalized);
@@ -256,6 +256,70 @@ export default function DashboardPage() {
     }
   };
 
+  const handleRenameServer = async () => {
+    if (!selectedServerId || !canManageServer) {
+      return;
+    }
+
+    const name = window.prompt("New server name");
+
+    if (!name || !name.trim()) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/servers/${selectedServerId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: name.trim() }),
+      });
+      const data = await response.json();
+
+      if (response.ok) {
+        setServers((prev) =>
+          prev.map((server) =>
+            server.id === selectedServerId
+              ? { ...server, name: data.server.name }
+              : server
+          )
+        );
+      }
+    } catch (error) {
+      // No-op for now.
+    }
+  };
+
+  const handleDeleteServer = async () => {
+    if (!selectedServerId || !canManageServer) {
+      return;
+    }
+
+    if (!window.confirm("Delete this server? This cannot be undone.")) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/servers/${selectedServerId}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        setServers((prev) => {
+          const remaining = prev.filter(
+            (server) => server.id !== selectedServerId
+          );
+          setSelectedServerId(remaining[0]?.id || null);
+          return remaining;
+        });
+        setChannels([]);
+        setMessages([]);
+        setSelectedChannelId(null);
+      }
+    } catch (error) {
+      // No-op for now.
+    }
+  };
+
   const handleSendMessage = async (content) => {
     if (!selectedChannelId) {
       return false;
@@ -284,6 +348,8 @@ export default function DashboardPage() {
         onSelectChannel={setSelectedChannelId}
         onCreateServer={handleCreateServer}
         onCreateChannel={handleCreateChannel}
+        onRenameServer={handleRenameServer}
+        onDeleteServer={handleDeleteServer}
         isLoadingChannels={isLoadingChannels}
         canManageServer={canManageServer}
       />

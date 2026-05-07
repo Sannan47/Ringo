@@ -9,6 +9,8 @@ export default function Sidebar({
   onSelectChannel,
   onCreateServer,
   onCreateChannel,
+  onRenameServer,
+  onDeleteServer,
   isLoadingChannels,
   canManageServer,
 }) {
@@ -54,6 +56,24 @@ export default function Sidebar({
           >
             + Create Server
           </button>
+          {canManageServer ? (
+            <div className="mt-3 space-y-2">
+              <button
+                type="button"
+                onClick={onRenameServer}
+                className="w-full rounded-xl border border-slate-700 px-3 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-300 transition hover:border-slate-500 hover:text-white"
+              >
+                Rename Server
+              </button>
+              <button
+                type="button"
+                onClick={onDeleteServer}
+                className="w-full rounded-xl border border-rose-500/40 px-3 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-rose-200 transition hover:border-rose-400"
+              >
+                Delete Server
+              </button>
+            </div>
+          ) : null}
         </div>
 
         <div className="mt-6">
