@@ -2,13 +2,13 @@ import { NextResponse } from "next/server";
 import connectDb from "../../../../lib/db";
 import Channel from "../../../../models/Channel";
 import Message from "../../../../models/Message";
-import { getUserFromRequest } from "../../../../lib/auth";
+import { requireAuth } from "../../../../lib/permissions";
 
 export async function GET(request, { params }) {
-  const user = getUserFromRequest(request);
+  const { response } = requireAuth(request);
 
-  if (!user) {
-    return NextResponse.json({ message: "Authentication required" }, { status: 401 });
+  if (response) {
+    return response;
   }
 
   try {

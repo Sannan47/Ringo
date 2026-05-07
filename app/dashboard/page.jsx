@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Sidebar from "../../components/Sidebar";
 import ChatPanel from "../../components/ChatPanel";
 import useSocket from "../../hooks/useSocket";
+import { useAuth } from "../../context/AuthContext";
 
 export default function DashboardPage() {
   const [servers, setServers] = useState([]);
@@ -16,10 +17,18 @@ export default function DashboardPage() {
   const [onlineCount, setOnlineCount] = useState(0);
   const [typingUsers, setTypingUsers] = useState([]);
   const socket = useSocket(true);
+  const { user } = useAuth();
 
   const selectedChannel = useMemo(
     () => channels.find((channel) => channel.id === selectedChannelId) || null,
     [channels, selectedChannelId]
+  );
+  const selectedServer = useMemo(
+    () => servers.find((server) => server.id === selectedServerId) || null,
+    [servers, selectedServerId]
+  );
+  const canManageServer = Boolean(
+    selectedServer && user && selectedServer.ownerId === user.userId
   );
 
   useEffect(() => {
@@ -30,8 +39,9 @@ export default function DashboardPage() {
 
         if (response.ok) {
           const normalized = (data.servers || []).map((server) => ({
-            id: server._id,
+            id: server.id || server._id,
             name: server.name,
+            ownerId: server.ownerId,
           }));
           setServers(normalized);
           if (normalized.length > 0) {
@@ -201,7 +211,11 @@ export default function DashboardPage() {
       const data = await response.json();
 
       if (response.ok) {
-        const newServer = { id: data.server._id, name: data.server.name };
+        const newServer = {
+          id: data.server.id || data.server._id,
+          name: data.server.name,
+          ownerId: data.server.ownerId,
+        };
         setServers((prev) => [newServer, ...prev]);
         setSelectedServerId(newServer.id);
       }
@@ -211,7 +225,7 @@ export default function DashboardPage() {
   };
 
   const handleCreateChannel = async () => {
-    if (!selectedServerId) {
+    if (!selectedServerId || !canManageServer) {
       return;
     }
 
@@ -230,7 +244,10 @@ export default function DashboardPage() {
       const data = await response.json();
 
       if (response.ok) {
-        const newChannel = { id: data.channel._id, name: data.channel.name };
+        const newChannel = {
+          id: data.channel.id || data.channel._id,
+          name: data.channel.name,
+        };
         setChannels((prev) => [newChannel, ...prev]);
         setSelectedChannelId(newChannel.id);
       }
@@ -268,6 +285,7 @@ export default function DashboardPage() {
         onCreateServer={handleCreateServer}
         onCreateChannel={handleCreateChannel}
         isLoadingChannels={isLoadingChannels}
+        canManageServer={canManageServer}
       />
       <ChatPanel
         selectedChannel={selectedChannel}

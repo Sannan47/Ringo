@@ -1,30 +1,35 @@
 import { NextResponse } from "next/server";
 import connectDb from "../../../lib/db";
 import Server from "../../../models/Server";
-import { getUserFromRequest } from "../../../lib/auth";
+import { requireAuth } from "../../../lib/permissions";
 
 export async function GET(request) {
-  const user = getUserFromRequest(request);
+  const { user, response } = requireAuth(request);
 
-  if (!user) {
-    return NextResponse.json({ message: "Authentication required" }, { status: 401 });
+  if (response) {
+    return response;
   }
 
   try {
     await connectDb();
     const servers = await Server.find({ members: user.userId }).lean();
+    const formatted = servers.map((server) => ({
+      id: server._id.toString(),
+      name: server.name,
+      ownerId: server.ownerId.toString(),
+    }));
 
-    return NextResponse.json({ servers }, { status: 200 });
+    return NextResponse.json({ servers: formatted }, { status: 200 });
   } catch (error) {
     return NextResponse.json({ message: "Something went wrong" }, { status: 500 });
   }
 }
 
 export async function POST(request) {
-  const user = getUserFromRequest(request);
+  const { user, response } = requireAuth(request);
 
-  if (!user) {
-    return NextResponse.json({ message: "Authentication required" }, { status: 401 });
+  if (response) {
+    return response;
   }
 
   try {
@@ -43,7 +48,16 @@ export async function POST(request) {
       members: [user.userId],
     });
 
-    return NextResponse.json({ server }, { status: 201 });
+    return NextResponse.json(
+      {
+        server: {
+          id: server._id.toString(),
+          name: server.name,
+          ownerId: server.ownerId.toString(),
+        },
+      },
+      { status: 201 }
+    );
   } catch (error) {
     return NextResponse.json({ message: "Something went wrong" }, { status: 500 });
   }

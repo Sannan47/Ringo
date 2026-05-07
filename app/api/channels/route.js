@@ -2,13 +2,13 @@ import { NextResponse } from "next/server";
 import connectDb from "../../../lib/db";
 import Channel from "../../../models/Channel";
 import Server from "../../../models/Server";
-import { getUserFromRequest } from "../../../lib/auth";
+import { requireAuth, requireServerOwner } from "../../../lib/permissions";
 
 export async function GET(request) {
-  const user = getUserFromRequest(request);
+  const { response } = requireAuth(request);
 
-  if (!user) {
-    return NextResponse.json({ message: "Authentication required" }, { status: 401 });
+  if (response) {
+    return response;
   }
 
   try {
@@ -27,18 +27,23 @@ export async function GET(request) {
     }
 
     const channels = await Channel.find({ serverId }).lean();
+    const formatted = channels.map((channel) => ({
+      id: channel._id.toString(),
+      name: channel.name,
+      serverId: channel.serverId.toString(),
+    }));
 
-    return NextResponse.json({ channels }, { status: 200 });
+    return NextResponse.json({ channels: formatted }, { status: 200 });
   } catch (error) {
     return NextResponse.json({ message: "Something went wrong" }, { status: 500 });
   }
 }
 
 export async function POST(request) {
-  const user = getUserFromRequest(request);
+  const { user, response } = requireAuth(request);
 
-  if (!user) {
-    return NextResponse.json({ message: "Authentication required" }, { status: 401 });
+  if (response) {
+    return response;
   }
 
   try {
@@ -53,17 +58,24 @@ export async function POST(request) {
       );
     }
 
-    await connectDb();
+    const ownership = await requireServerOwner(user.userId, serverId);
 
-    const serverExists = await Server.exists({ _id: serverId });
-
-    if (!serverExists) {
-      return NextResponse.json({ message: "Server not found" }, { status: 404 });
+    if (ownership.response) {
+      return ownership.response;
     }
 
     const channel = await Channel.create({ name, serverId });
 
-    return NextResponse.json({ channel }, { status: 201 });
+    return NextResponse.json(
+      {
+        channel: {
+          id: channel._id.toString(),
+          name: channel.name,
+          serverId: channel.serverId.toString(),
+        },
+      },
+      { status: 201 }
+    );
   } catch (error) {
     return NextResponse.json({ message: "Something went wrong" }, { status: 500 });
   }

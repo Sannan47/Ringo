@@ -10,6 +10,7 @@ export default function Sidebar({
   onCreateServer,
   onCreateChannel,
   isLoadingChannels,
+  canManageServer,
 }) {
   return (
     <aside className="flex h-full w-20 flex-col border-r border-slate-800 bg-slate-900 text-slate-100 sm:w-64">
@@ -28,9 +29,9 @@ export default function Sidebar({
             Servers
           </p>
           <div className="mt-3 space-y-2">
-            {servers.map((server) => (
+            {servers.map((server, index) => (
               <button
-                key={server.id}
+                key={server.id || `${server.name}-${index}`}
                 type="button"
                 onClick={() => onSelectServer(server.id)}
                 className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm transition ${
@@ -68,9 +69,9 @@ export default function Sidebar({
                 No channels yet.
               </p>
             ) : null}
-            {channels.map((channel) => (
+            {channels.map((channel, index) => (
               <button
-                key={channel.id}
+                key={channel.id || `${channel.name}-${index}`}
                 type="button"
                 onClick={() => onSelectChannel(channel.id)}
                 className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition ${
@@ -84,14 +85,16 @@ export default function Sidebar({
               </button>
             ))}
           </div>
-          <button
-            type="button"
-            onClick={onCreateChannel}
-            disabled={!selectedServerId}
-            className="mt-3 w-full rounded-xl border border-dashed border-slate-700 px-3 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 transition hover:border-slate-500 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            + Create Channel
-          </button>
+          {canManageServer ? (
+            <button
+              type="button"
+              onClick={onCreateChannel}
+              disabled={!selectedServerId}
+              className="mt-3 w-full rounded-xl border border-dashed border-slate-700 px-3 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 transition hover:border-slate-500 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              + Create Channel
+            </button>
+          ) : null}
         </div>
       </div>
     </aside>

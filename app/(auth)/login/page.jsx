@@ -3,9 +3,11 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useAuth } from "../../context/AuthContext";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { setUser } = useAuth();
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState({});
   const [serverError, setServerError] = useState("");
@@ -62,6 +64,9 @@ export default function LoginPage() {
         return;
       }
 
+      if (data?.user) {
+        setUser(data.user);
+      }
       router.push("/dashboard");
     } catch (error) {
       setServerError("Something went wrong. Please try again.");

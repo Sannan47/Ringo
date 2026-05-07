@@ -2,9 +2,11 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useAuth } from "../../context/AuthContext";
 
 export default function LogoutButton() {
   const router = useRouter();
+  const { setUser } = useAuth();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const handleLogout = async () => {
@@ -16,6 +18,7 @@ export default function LogoutButton() {
 
     try {
       await fetch("/api/auth/logout", { method: "POST" });
+      setUser(null);
       router.push("/login");
       router.refresh();
     } finally {
