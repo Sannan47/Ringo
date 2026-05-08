@@ -5,6 +5,8 @@ import nextEnv from "@next/env";
 import connectDb from "./lib/db.js";
 import Channel from "./models/Channel.js";
 import Message from "./models/Message.js";
+import DirectMessage from "./models/DirectMessage.js";
+import DirectThread from "./models/DirectThread.js";
 import User from "./models/User.js";
 import { verifyToken } from "./lib/auth.js";
 
@@ -144,6 +146,62 @@ io.on("connection", (socket) => {
       });
     } catch (error) {
       console.error("socket message error", error);
+    }
+  });
+
+  socket.on("join_dm", ({ threadId }) => {
+    if (!threadId) {
+      return;
+    }
+
+    socket.join(`dm:${threadId}`);
+  });
+
+  socket.on("leave_dm", ({ threadId }) => {
+    if (!threadId) {
+      return;
+    }
+
+    socket.leave(`dm:${threadId}`);
+  });
+
+  socket.on("send_dm", async ({ threadId, content }) => {
+    const trimmed = String(content || "").trim();
+
+    if (!threadId || !trimmed) {
+      return;
+    }
+
+    try {
+      await connectDb();
+
+      const thread = await DirectThread.findOne({
+        _id: threadId,
+        participants: socket.user.userId,
+      }).lean();
+
+      if (!thread) {
+        return;
+      }
+
+      const message = await DirectMessage.create({
+        content: trimmed,
+        threadId,
+        senderId: socket.user.userId,
+      });
+
+      io.to(`dm:${threadId}`).emit("receive_dm", {
+        id: message._id.toString(),
+        content: message.content,
+        threadId,
+        createdAt: message.createdAt,
+        sender: {
+          id: socket.user.userId,
+          name: socket.user.name,
+        },
+      });
+    } catch (error) {
+      console.error("socket dm error", error);
     }
   });
 

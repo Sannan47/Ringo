@@ -3,12 +3,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 export default function ChatPanel({
-  selectedChannel,
+  title,
+  statusLabel,
   messages,
   isLoading,
   onlineCount,
   typingUsers,
   onTyping,
+  canSend,
   onSendMessage,
 }) {
   const [messageText, setMessageText] = useState("");
@@ -46,7 +48,7 @@ export default function ChatPanel({
   const handleSubmit = async () => {
     const trimmed = messageText.trim();
 
-    if (!trimmed || !selectedChannel) {
+    if (!trimmed || !canSend) {
       return;
     }
 
@@ -70,11 +72,11 @@ export default function ChatPanel({
               Active channel
             </p>
             <h2 className="text-lg font-semibold text-white">
-              {selectedChannel ? `#${selectedChannel.name}` : "Select a channel"}
+              {title || "Select a chat"}
             </h2>
           </div>
           <span className="rounded-full bg-slate-800 px-3 py-1 text-xs text-slate-300">
-            {selectedChannel ? `${onlineCount} online` : "Idle"}
+            {statusLabel || "Idle"}
           </span>
         </div>
       </header>
@@ -139,7 +141,7 @@ export default function ChatPanel({
           <button
             type="button"
             onClick={handleSubmit}
-            disabled={!messageText.trim() || !selectedChannel}
+            disabled={!messageText.trim() || !canSend}
             className="rounded-xl bg-sky-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-60"
           >
             Send

@@ -2,17 +2,23 @@
 
 export default function Sidebar({
   servers,
+  dmThreads,
   channels,
   selectedServerId,
   selectedChannelId,
+  selectedThreadId,
   onSelectServer,
   onSelectChannel,
+  onSelectThread,
+  onShowFriends,
   onCreateServer,
   onCreateChannel,
   onRenameServer,
   onDeleteServer,
+  onCreateInvite,
   isLoadingChannels,
   canManageServer,
+  isFriendsView,
 }) {
   return (
     <aside className="flex h-full w-20 flex-col border-r border-slate-800 bg-slate-900 text-slate-100 sm:w-64">
@@ -26,6 +32,43 @@ export default function Sidebar({
       </div>
 
       <div className="flex-1 overflow-y-auto px-3 py-4">
+        <div>
+          <p className="hidden text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 sm:block">
+            Direct Messages
+          </p>
+          <div className="mt-3 space-y-1">
+            <button
+              type="button"
+              onClick={onShowFriends}
+              className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition ${
+                isFriendsView
+                  ? "bg-slate-800 text-white"
+                  : "text-slate-300 hover:bg-slate-800/70"
+              }`}
+            >
+              <span className="text-slate-500">★</span>
+              <span className="hidden sm:inline">Friends</span>
+            </button>
+            {dmThreads.map((thread, index) => (
+              <button
+                key={thread.id || `${thread.participant?.email}-${index}`}
+                type="button"
+                onClick={() => onSelectThread(thread.id)}
+                className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition ${
+                  selectedThreadId === thread.id && !isFriendsView
+                    ? "bg-slate-800 text-white"
+                    : "text-slate-300 hover:bg-slate-800/70"
+                }`}
+              >
+                <span className="text-slate-500">@</span>
+                <span className="hidden sm:inline">
+                  {thread.participant?.name || "Direct Message"}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div>
           <p className="hidden text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 sm:block">
             Servers
@@ -58,6 +101,13 @@ export default function Sidebar({
           </button>
           {canManageServer ? (
             <div className="mt-3 space-y-2">
+              <button
+                type="button"
+                onClick={onCreateInvite}
+                className="w-full rounded-xl border border-slate-700 px-3 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-300 transition hover:border-slate-500 hover:text-white"
+              >
+                Create Invite
+              </button>
               <button
                 type="button"
                 onClick={onRenameServer}

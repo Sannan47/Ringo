@@ -28,6 +28,7 @@ export const config = {
     "/servers/:path*",
     "/server/:path*",
     "/channel/:path*",
+    "/invite/:path*",
     "/admin/:path*",
   ],
 };
