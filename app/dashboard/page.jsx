@@ -1,12 +1,35 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import Sidebar from "../../components/Sidebar";
 import ChatPanel from "../../components/ChatPanel";
 import FriendsSidebar from "../../components/FriendsSidebar";
 import VoiceRoom from "../../components/chat/VoiceRoom";
 import useSocket from "../../hooks/useSocket";
 import { useAuth } from "../../context/AuthContext";
+
+const uploadImage = async (file, scope) => {
+  if (!file) {
+    return "";
+  }
+
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("scope", scope);
+
+  const response = await fetch("/api/uploads", {
+    method: "POST",
+    body: formData,
+  });
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data?.error || "Unable to upload image");
+  }
+
+  return data.url;
+};
 
 function CloseIcon() {
   return (
@@ -95,6 +118,160 @@ function CreateServerModal({
   );
 }
 
+function DashboardModal({
+  dialog,
+  value,
+  file,
+  error,
+  status,
+  isSubmitting,
+  onValueChange,
+  onFileChange,
+  onClose,
+  onSubmit,
+}) {
+  if (!dialog) {
+    return null;
+  }
+
+  const isImageDialog = dialog.type === "server-image" || dialog.type === "profile-image";
+  const isDelete = dialog.type === "delete-server";
+  const isInvite = dialog.type === "invite";
+  const title =
+    dialog.type === "create-channel"
+      ? `Create ${dialog.channelType} channel`
+      : dialog.type === "rename-server"
+      ? "Rename server"
+      : dialog.type === "delete-server"
+      ? "Delete server"
+      : dialog.type === "server-image"
+      ? "Server image"
+      : dialog.type === "profile-image"
+      ? "Profile image"
+      : "Invite link";
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 px-4 py-6">
+      <form
+        onSubmit={onSubmit}
+        className="modal-surface w-full max-w-md rounded-lg border border-[var(--border)] bg-[var(--surface-solid)] p-5 text-[var(--text)] shadow-[var(--shadow-md)]"
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.14em] text-[var(--faint)]">
+              {dialog.kicker || "Settings"}
+            </p>
+            <h2 className="mt-1 text-2xl font-black">{title}</h2>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="icon-button h-9 w-9"
+            aria-label={`Close ${title}`}
+          >
+            <CloseIcon />
+          </button>
+        </div>
+
+        {isInvite ? (
+          <>
+            <label className="mt-5 block text-sm font-bold text-[var(--text-soft)]">
+              Share this link
+            </label>
+            <input className="field mt-2" readOnly value={dialog.link || ""} />
+            {status ? (
+              <p className="mt-2 text-xs font-semibold text-emerald-600">{status}</p>
+            ) : null}
+          </>
+        ) : isDelete ? (
+          <p className="mt-5 text-sm leading-6 text-[var(--text-soft)]">
+            Delete {dialog.serverName || "this server"}? This removes its channels
+            and messages.
+          </p>
+        ) : isImageDialog ? (
+          <>
+            {dialog.currentUrl ? (
+              <Image
+                src={dialog.currentUrl}
+                alt=""
+                width={96}
+                height={96}
+                className="mt-5 h-24 w-24 rounded-lg object-cover"
+              />
+            ) : null}
+            <label className="mt-5 block text-sm font-bold text-[var(--text-soft)]">
+              Image file
+            </label>
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              onChange={(event) => onFileChange(event.target.files?.[0] || null)}
+              className="field mt-2"
+            />
+            <p className="mt-2 text-xs font-semibold text-[var(--muted)]">
+              JPG, PNG, WebP, or GIF. Max 4 MB.
+            </p>
+          </>
+        ) : (
+          <>
+            <label className="mt-5 block text-sm font-bold text-[var(--text-soft)]">
+              {dialog.label || "Name"}
+            </label>
+            <input
+              type="text"
+              value={value}
+              onChange={(event) => onValueChange(event.target.value)}
+              className="field mt-2"
+              placeholder={dialog.placeholder || ""}
+              autoFocus
+            />
+          </>
+        )}
+
+        {file ? (
+          <p className="mt-2 truncate text-xs font-semibold text-[var(--muted)]">
+            Selected: {file.name}
+          </p>
+        ) : null}
+        {error ? (
+          <p className="mt-2 text-xs font-semibold text-rose-600">{error}</p>
+        ) : null}
+
+        <div className="mt-5 flex justify-end gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="btn-secondary min-h-10 px-4 py-2 text-sm"
+          >
+            {isInvite ? "Close" : "Cancel"}
+          </button>
+          {isInvite ? (
+            <button
+              type="button"
+              onClick={dialog.onCopy}
+              className="btn-primary min-h-10 px-4 py-2 text-sm"
+            >
+              Copy
+            </button>
+          ) : (
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className={`min-h-10 px-4 py-2 text-sm ${
+                isDelete
+                  ? "rounded-full border border-rose-400/40 font-black text-rose-600 transition hover:bg-rose-500/10"
+                  : "btn-primary"
+              }`}
+            >
+              {isSubmitting ? "Saving..." : isDelete ? "Delete" : "Save"}
+            </button>
+          )}
+        </div>
+      </form>
+    </div>
+  );
+}
+
 export default function DashboardPage({ initialServerId = null } = {}) {
   const [servers, setServers] = useState([]);
   const [dmThreads, setDmThreads] = useState([]);
@@ -124,8 +301,14 @@ export default function DashboardPage({ initialServerId = null } = {}) {
   const [createServerName, setCreateServerName] = useState("");
   const [createServerError, setCreateServerError] = useState("");
   const [isCreatingServer, setIsCreatingServer] = useState(false);
+  const [dialog, setDialog] = useState(null);
+  const [dialogValue, setDialogValue] = useState("");
+  const [dialogFile, setDialogFile] = useState(null);
+  const [dialogError, setDialogError] = useState("");
+  const [dialogStatus, setDialogStatus] = useState("");
+  const [isDialogSubmitting, setIsDialogSubmitting] = useState(false);
   const socket = useSocket(true);
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
 
   const selectedChannel = useMemo(
     () => channels.find((channel) => channel.id === selectedChannelId) || null,
@@ -172,6 +355,7 @@ export default function DashboardPage({ initialServerId = null } = {}) {
           const normalized = (data.servers || []).map((server) => ({
             id: server.id || server._id,
             name: server.name,
+            imageUrl: server.imageUrl || "",
             ownerId: server.ownerId,
           }));
           setServers(normalized);
@@ -585,6 +769,22 @@ export default function DashboardPage({ initialServerId = null } = {}) {
     });
   };
 
+  const closeDialog = () => {
+    setDialog(null);
+    setDialogValue("");
+    setDialogFile(null);
+    setDialogError("");
+    setDialogStatus("");
+  };
+
+  const openDialog = (nextDialog, nextValue = "") => {
+    setDialog(nextDialog);
+    setDialogValue(nextValue);
+    setDialogFile(null);
+    setDialogError("");
+    setDialogStatus("");
+  };
+
   const handleCreateServer = async (event) => {
     event.preventDefault();
     setCreateServerError("");
@@ -607,6 +807,7 @@ export default function DashboardPage({ initialServerId = null } = {}) {
         const newServer = {
           id: data.server.id || data.server._id,
           name: data.server.name,
+          imageUrl: data.server.imageUrl || "",
           ownerId: data.server.ownerId,
         };
         setServers((prev) => [newServer, ...prev]);
@@ -639,15 +840,23 @@ export default function DashboardPage({ initialServerId = null } = {}) {
 
       if (response.ok) {
         const link = `${window.location.origin}${data.inviteLink}`;
-        try {
-          await navigator.clipboard.writeText(link);
-          window.alert("Invite link copied to clipboard.");
-        } catch {
-          window.prompt("Copy this invite link:", link);
-        }
+        openDialog({
+          type: "invite",
+          kicker: "Invite",
+          link,
+          onCopy: async () => {
+            try {
+              await navigator.clipboard.writeText(link);
+              setDialogStatus("Copied to clipboard");
+            } catch {
+              setDialogStatus("Select the link and copy it manually");
+            }
+          },
+        });
       }
     } catch {
-      // No-op for now.
+      openDialog({ type: "invite", kicker: "Invite", link: "" });
+      setDialogError("Unable to create invite");
     }
   };
 
@@ -657,20 +866,38 @@ export default function DashboardPage({ initialServerId = null } = {}) {
     }
 
     const channelType = type === "voice" ? "voice" : "text";
-    const name = window.prompt(
-      `${channelType === "voice" ? "Voice" : "Text"} channel name`
+    openDialog(
+      {
+        type: "create-channel",
+        channelType,
+        kicker: selectedServer?.name || "Channel",
+        label: `${channelType === "voice" ? "Voice" : "Text"} channel name`,
+        placeholder: channelType === "voice" ? "Team room" : "general",
+      },
+      ""
     );
+  };
 
-    if (!name || !name.trim()) {
+  const submitCreateChannel = async () => {
+    if (!selectedServerId || !canManageServer || dialog?.type !== "create-channel") {
       return;
     }
 
+    const channelType = dialog.channelType === "voice" ? "voice" : "text";
+    const name = dialogValue.trim();
+
+    if (!name) {
+      setDialogError("Channel name is required");
+      return;
+    }
+
+    setIsDialogSubmitting(true);
     try {
       const response = await fetch("/api/channels", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: name.trim(),
+          name,
           type: channelType,
           serverId: selectedServerId,
         }),
@@ -690,9 +917,14 @@ export default function DashboardPage({ initialServerId = null } = {}) {
         } else {
           setSelectedChannelId(newChannel.id);
         }
+        closeDialog();
+      } else {
+        setDialogError(data?.error || data?.message || "Unable to create channel");
       }
     } catch {
-      // No-op for now.
+      setDialogError("Unable to create channel");
+    } finally {
+      setIsDialogSubmitting(false);
     }
   };
 
@@ -701,17 +933,35 @@ export default function DashboardPage({ initialServerId = null } = {}) {
       return;
     }
 
-    const name = window.prompt("New server name");
+    openDialog(
+      {
+        type: "rename-server",
+        kicker: selectedServer?.name || "Server",
+        label: "Server name",
+        placeholder: "Design team",
+      },
+      selectedServer?.name || ""
+    );
+  };
 
-    if (!name || !name.trim()) {
+  const submitRenameServer = async () => {
+    if (!selectedServerId || !canManageServer) {
       return;
     }
 
+    const name = dialogValue.trim();
+
+    if (!name) {
+      setDialogError("Server name is required");
+      return;
+    }
+
+    setIsDialogSubmitting(true);
     try {
       const response = await fetch(`/api/servers/${selectedServerId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim() }),
+        body: JSON.stringify({ name }),
       });
       const data = await response.json();
 
@@ -723,9 +973,14 @@ export default function DashboardPage({ initialServerId = null } = {}) {
               : server
           )
         );
+        closeDialog();
+      } else {
+        setDialogError(data?.error || "Unable to rename server");
       }
     } catch {
-      // No-op for now.
+      setDialogError("Unable to rename server");
+    } finally {
+      setIsDialogSubmitting(false);
     }
   };
 
@@ -734,10 +989,19 @@ export default function DashboardPage({ initialServerId = null } = {}) {
       return;
     }
 
-    if (!window.confirm("Delete this server? This cannot be undone.")) {
+    openDialog({
+      type: "delete-server",
+      kicker: "Danger zone",
+      serverName: selectedServer?.name,
+    });
+  };
+
+  const submitDeleteServer = async () => {
+    if (!selectedServerId || !canManageServer) {
       return;
     }
 
+    setIsDialogSubmitting(true);
     try {
       const response = await fetch(`/api/servers/${selectedServerId}`, {
         method: "DELETE",
@@ -757,13 +1021,120 @@ export default function DashboardPage({ initialServerId = null } = {}) {
         if (activeVoiceChannel?.serverId === selectedServerId) {
           setActiveVoiceChannel(null);
         }
+        closeDialog();
+      } else {
+        const data = await response.json();
+        setDialogError(data?.error || "Unable to delete server");
       }
     } catch {
-      // No-op for now.
+      setDialogError("Unable to delete server");
+    } finally {
+      setIsDialogSubmitting(false);
     }
   };
 
-  const handleSendMessage = async (content) => {
+  const handleEditServerImage = () => {
+    if (!selectedServerId || !canManageServer) {
+      return;
+    }
+
+    openDialog({
+      type: "server-image",
+      kicker: selectedServer?.name || "Server",
+      currentUrl: selectedServer?.imageUrl || "",
+    });
+  };
+
+  const handleEditProfileImage = () => {
+    openDialog({
+      type: "profile-image",
+      kicker: "Account",
+      currentUrl: user?.avatarUrl || "",
+    });
+  };
+
+  const submitServerImage = async () => {
+    if (!selectedServerId || !canManageServer || !dialogFile) {
+      setDialogError("Choose an image first");
+      return;
+    }
+
+    setIsDialogSubmitting(true);
+    try {
+      const imageUrl = await uploadImage(dialogFile, "servers");
+      const response = await fetch(`/api/servers/${selectedServerId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageUrl }),
+      });
+      const data = await response.json();
+
+      if (response.ok) {
+        setServers((prev) =>
+          prev.map((server) =>
+            server.id === selectedServerId
+              ? { ...server, imageUrl: data.server.imageUrl || "" }
+              : server
+          )
+        );
+        closeDialog();
+      } else {
+        setDialogError(data?.error || "Unable to update server image");
+      }
+    } catch (error) {
+      setDialogError(error?.message || "Unable to update server image");
+    } finally {
+      setIsDialogSubmitting(false);
+    }
+  };
+
+  const submitProfileImage = async () => {
+    if (!dialogFile) {
+      setDialogError("Choose an image first");
+      return;
+    }
+
+    setIsDialogSubmitting(true);
+    try {
+      const avatarUrl = await uploadImage(dialogFile, "avatars");
+      const response = await fetch("/api/auth/me", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ avatarUrl }),
+      });
+      const data = await response.json();
+
+      if (response.ok) {
+        setUser(data.user || null);
+        closeDialog();
+      } else {
+        setDialogError(data?.error || "Unable to update profile image");
+      }
+    } catch (error) {
+      setDialogError(error?.message || "Unable to update profile image");
+    } finally {
+      setIsDialogSubmitting(false);
+    }
+  };
+
+  const handleDialogSubmit = async (event) => {
+    event.preventDefault();
+    setDialogError("");
+
+    if (dialog?.type === "create-channel") {
+      await submitCreateChannel();
+    } else if (dialog?.type === "rename-server") {
+      await submitRenameServer();
+    } else if (dialog?.type === "delete-server") {
+      await submitDeleteServer();
+    } else if (dialog?.type === "server-image") {
+      await submitServerImage();
+    } else if (dialog?.type === "profile-image") {
+      await submitProfileImage();
+    }
+  };
+
+  const handleSendMessage = async (content, imageFile = null) => {
     if (!selectedChannelId) {
       return false;
     }
@@ -772,20 +1143,32 @@ export default function DashboardPage({ initialServerId = null } = {}) {
       return false;
     }
 
-    socket.emit("send_message", {
-      channelId: selectedChannelId,
-      content,
-    });
+    try {
+      const imageUrl = imageFile ? await uploadImage(imageFile, "messages") : "";
+      socket.emit("send_message", {
+        channelId: selectedChannelId,
+        content,
+        imageUrl,
+      });
+    } catch {
+      return false;
+    }
 
     return true;
   };
 
-  const handleSendDm = async (content) => {
+  const handleSendDm = async (content, imageFile = null) => {
     if (!selectedThreadId || !socket) {
       return false;
     }
 
-    socket.emit("send_dm", { threadId: selectedThreadId, content });
+    try {
+      const imageUrl = imageFile ? await uploadImage(imageFile, "messages") : "";
+      socket.emit("send_dm", { threadId: selectedThreadId, content, imageUrl });
+    } catch {
+      return false;
+    }
+
     return true;
   };
 
@@ -939,6 +1322,8 @@ export default function DashboardPage({ initialServerId = null } = {}) {
         onRenameServer={handleRenameServer}
         onDeleteServer={handleDeleteServer}
         onCreateInvite={handleCreateInvite}
+        onEditServerImage={handleEditServerImage}
+        onEditProfileImage={handleEditProfileImage}
         isLoadingChannels={isLoadingChannels}
         canManageServer={canManageServer}
       />
@@ -1001,6 +1386,18 @@ export default function DashboardPage({ initialServerId = null } = {}) {
           onSubmit={handleCreateServer}
         />
       ) : null}
+      <DashboardModal
+        dialog={dialog}
+        value={dialogValue}
+        file={dialogFile}
+        error={dialogError}
+        status={dialogStatus}
+        isSubmitting={isDialogSubmitting}
+        onValueChange={setDialogValue}
+        onFileChange={setDialogFile}
+        onClose={closeDialog}
+        onSubmit={handleDialogSubmit}
+      />
     </div>
   );
 }

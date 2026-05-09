@@ -32,16 +32,18 @@ export async function GET(request, { params }) {
 
     const messages = await DirectMessage.find({ threadId: id })
       .sort({ createdAt: 1 })
-      .populate("senderId", "name")
+      .populate("senderId", "name avatarUrl")
       .lean();
 
     const formatted = messages.map((message) => ({
       id: message._id.toString(),
       content: message.content,
+      imageUrl: message.imageUrl || "",
       createdAt: message.createdAt,
       sender: {
         id: message.senderId?._id?.toString(),
         name: message.senderId?.name || "Unknown",
+        avatarUrl: message.senderId?.avatarUrl || "",
       },
     }));
 

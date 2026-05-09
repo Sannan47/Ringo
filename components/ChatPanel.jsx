@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
 
 export default function ChatPanel({
   title,
@@ -14,8 +15,11 @@ export default function ChatPanel({
   voiceRoom,
 }) {
   const [messageText, setMessageText] = useState("");
+  const [imageFile, setImageFile] = useState(null);
+  const [isSending, setIsSending] = useState(false);
   const endRef = useRef(null);
   const typingTimeoutRef = useRef(null);
+  const fileInputRef = useRef(null);
   const formattedMessages = useMemo(
     () =>
       messages.map((message) => ({
@@ -49,17 +53,23 @@ export default function ChatPanel({
     event?.preventDefault();
     const trimmed = messageText.trim();
 
-    if (!trimmed || !canSend) {
+    if ((!trimmed && !imageFile) || !canSend || isSending) {
       return;
     }
 
     onTyping?.(false);
 
-    const sent = await onSendMessage(trimmed);
+    setIsSending(true);
+    const sent = await onSendMessage(trimmed, imageFile);
 
     if (sent) {
       setMessageText("");
+      setImageFile(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
     }
+    setIsSending(false);
   };
 
   useEffect(() => () => clearTypingTimer(), []);
@@ -118,7 +128,17 @@ export default function ChatPanel({
               style={{ animationDelay: `${Math.min(index, 8) * 35}ms` }}
             >
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--primary-soft)] text-sm font-black text-[var(--primary-strong)]">
-                {message.sender?.name?.slice(0, 1) || "?"}
+                {message.sender?.avatarUrl ? (
+                  <Image
+                    src={message.sender.avatarUrl}
+                    alt=""
+                    width={40}
+                    height={40}
+                    className="h-full w-full rounded-2xl object-cover"
+                  />
+                ) : (
+                  message.sender?.name?.slice(0, 1) || "?"
+                )}
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-baseline gap-2">
@@ -129,9 +149,27 @@ export default function ChatPanel({
                     {message.time}
                   </span>
                 </div>
-                <p className="mt-1 break-words text-sm leading-6 text-[var(--text-soft)]">
-                  {message.content}
-                </p>
+                {message.content ? (
+                  <p className="mt-1 break-words text-sm leading-6 text-[var(--text-soft)]">
+                    {message.content}
+                  </p>
+                ) : null}
+                {message.imageUrl ? (
+                  <a
+                    href={message.imageUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-3 block max-w-sm overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface-solid)]"
+                  >
+                    <Image
+                      src={message.imageUrl}
+                      alt=""
+                      width={640}
+                      height={420}
+                      className="max-h-80 w-full object-cover"
+                    />
+                  </a>
+                ) : null}
               </div>
             </div>
           ))}
@@ -160,6 +198,23 @@ export default function ChatPanel({
             onSubmit={handleSubmit}
           >
             <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              className="hidden"
+              onChange={(event) => setImageFile(event.target.files?.[0] || null)}
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={!canSend || isSending}
+              className="icon-button h-9 w-9 shrink-0"
+              aria-label="Attach image"
+              title="Attach image"
+            >
+              +
+            </button>
+            <input
               type="text"
               placeholder="Send a message"
               value={messageText}
@@ -179,12 +234,29 @@ export default function ChatPanel({
             <button
               type="button"
               onClick={handleSubmit}
-              disabled={!messageText.trim() || !canSend}
+              disabled={(!messageText.trim() && !imageFile) || !canSend || isSending}
               className="btn-primary min-h-9 px-4 py-2 text-sm"
             >
-              Send
+              {isSending ? "Sending..." : "Send"}
             </button>
           </form>
+          {imageFile ? (
+            <div className="mt-2 flex items-center justify-between gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface-solid)] px-3 py-2 text-xs font-semibold text-[var(--muted)]">
+              <span className="min-w-0 truncate">{imageFile.name}</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setImageFile(null);
+                  if (fileInputRef.current) {
+                    fileInputRef.current.value = "";
+                  }
+                }}
+                className="font-black text-rose-600"
+              >
+                Remove
+              </button>
+            </div>
+          ) : null}
         </div>
       </div>
     </section>

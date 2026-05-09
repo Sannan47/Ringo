@@ -30,7 +30,7 @@ export async function GET(request) {
       .lean();
 
     const friendships = await Friendship.find({ users: user.userId })
-      .populate("users", "name email")
+      .populate("users", "name email avatarUrl")
       .lean();
 
     const friends = friendships
@@ -44,6 +44,7 @@ export async function GET(request) {
         id: entry._id.toString(),
         name: entry.name,
         email: entry.email,
+        avatarUrl: entry.avatarUrl || "",
       }));
 
     return NextResponse.json(
@@ -52,8 +53,9 @@ export async function GET(request) {
           id: req._id.toString(),
           from: {
             id: req.fromUser?._id?.toString(),
-            name: req.fromUser?.name,
-            email: req.fromUser?.email,
+              name: req.fromUser?.name,
+              email: req.fromUser?.email,
+              avatarUrl: req.fromUser?.avatarUrl || "",
           },
           createdAt: req.createdAt,
         })),
@@ -63,6 +65,7 @@ export async function GET(request) {
             id: req.toUser?._id?.toString(),
             name: req.toUser?.name,
             email: req.toUser?.email,
+            avatarUrl: req.toUser?.avatarUrl || "",
           },
           createdAt: req.createdAt,
         })),
@@ -140,6 +143,7 @@ export async function POST(request) {
             id: user.userId,
             name: currentUser?.name,
             email: user.email,
+            avatarUrl: currentUser?.avatarUrl || "",
           },
           createdAt: requestDoc.createdAt,
         },

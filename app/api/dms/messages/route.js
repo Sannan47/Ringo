@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import connectDb from "../../../../lib/db";
 import DirectMessage from "../../../../models/DirectMessage";
 import DirectThread from "../../../../models/DirectThread";
+import { isLocalUploadUrl } from "../../../../lib/images";
 import { requireAuth } from "../../../../lib/permissions";
 
 export async function POST(request) {
@@ -15,12 +16,17 @@ export async function POST(request) {
     const body = await request.json();
     const threadId = String(body?.threadId || "").trim();
     const content = String(body?.content || "").trim();
+    const imageUrl = String(body?.imageUrl || "").trim();
 
-    if (!threadId || !content) {
+    if (!threadId || (!content && !imageUrl)) {
       return NextResponse.json(
-        { error: "threadId and content are required" },
+        { error: "threadId and content or image are required" },
         { status: 400 }
       );
+    }
+
+    if (imageUrl && !isLocalUploadUrl(imageUrl)) {
+      return NextResponse.json({ error: "Invalid image" }, { status: 400 });
     }
 
     await connectDb();
@@ -38,6 +44,7 @@ export async function POST(request) {
       threadId,
       senderId: user.userId,
       content,
+      imageUrl,
     });
 
     return NextResponse.json(
@@ -45,6 +52,7 @@ export async function POST(request) {
         message: {
           id: message._id.toString(),
           content: message.content,
+          imageUrl: message.imageUrl || "",
           createdAt: message.createdAt,
           sender: { id: user.userId, name: "You" },
         },

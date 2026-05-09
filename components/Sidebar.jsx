@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../context/AuthContext";
 
@@ -14,10 +15,6 @@ function SectionTitle({ children }) {
 
 function HashIcon() {
   return <span className="w-4 text-center text-[var(--faint)]">#</span>;
-}
-
-function AtIcon() {
-  return <span className="w-4 text-center text-[var(--faint)]">@</span>;
 }
 
 function SettingsIcon() {
@@ -53,7 +50,27 @@ const getPreferredTheme = () => {
     : "light";
 };
 
-function SettingsPopover() {
+function Avatar({ name, imageUrl, className = "h-9 w-9 rounded-lg" }) {
+  return (
+    <span
+      className={`${className} flex shrink-0 items-center justify-center overflow-hidden bg-[var(--primary-soft)] text-xs font-black text-[var(--primary-strong)] shadow-sm`}
+    >
+      {imageUrl ? (
+        <Image
+          src={imageUrl}
+          alt=""
+          width={48}
+          height={48}
+          className="h-full w-full object-cover"
+        />
+      ) : (
+        name?.slice(0, 2).toUpperCase() || "?"
+      )}
+    </span>
+  );
+}
+
+function SettingsPopover({ onEditProfileImage }) {
   const router = useRouter();
   const { user, setUser } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
@@ -148,6 +165,17 @@ function SettingsPopover() {
               />
             </button>
           </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              setIsOpen(false);
+              onEditProfileImage?.();
+            }}
+            className="mt-3 text-left text-sm font-black text-[var(--text)] transition hover:text-[var(--primary-strong)]"
+          >
+            Profile image
+          </button>
 
           <button
             type="button"
@@ -275,47 +303,68 @@ export default function Sidebar({
   onRenameServer,
   onDeleteServer,
   onCreateInvite,
+  onEditServerImage,
+  onEditProfileImage,
   isLoadingChannels,
   canManageServer,
 }) {
   const selectedServer = servers.find((server) => server.id === selectedServerId);
   const hasDmUnread = unreadDmThreadIds.size > 0;
-  const hasServerUnread = unreadServerIds.size > 0;
 
   return (
     <aside className="dashboard-sidebar flex h-[calc(100vh-1rem)] w-[86px] shrink-0 text-[var(--text)] sm:w-[370px]">
-      <div className="flex w-[84px] shrink-0 flex-col items-center border-r border-[var(--border)] bg-[var(--surface-solid)] px-2 py-4">
-        <span className="brand-mark h-11 w-11 rounded-xl">R</span>
+      <div className="soft-scrollbar flex w-[84px] shrink-0 flex-col items-center gap-2 overflow-y-auto border-r border-[var(--border)] bg-[var(--surface-solid)] px-2 py-4">
+        <button
+          type="button"
+          onClick={() => onTabChange("dms")}
+          className={`icon-button relative h-12 w-12 ${
+            activeTab === "dms"
+              ? "border-[var(--primary)] bg-[var(--primary-faint)] text-[var(--primary-strong)]"
+              : ""
+          }`}
+          aria-label="Direct messages"
+          title="Direct messages"
+        >
+          <MessagesIcon />
+          <UnreadDot show={hasDmUnread} />
+        </button>
 
-        <div className="mt-5 grid gap-2">
-          <button
-            type="button"
-            onClick={() => onTabChange("servers")}
-            className={`icon-button relative h-11 w-11 ${
-              activeTab === "servers" ? "border-[var(--primary)] bg-[var(--primary-faint)] text-[var(--primary-strong)]" : ""
-            }`}
-            aria-label="Servers"
-            title="Servers"
-          >
-            <ServerIcon />
-            <UnreadDot show={hasServerUnread} />
-          </button>
-          <button
-            type="button"
-            onClick={() => onTabChange("dms")}
-            className={`icon-button relative h-11 w-11 ${
-              activeTab === "dms" ? "border-[var(--primary)] bg-[var(--primary-faint)] text-[var(--primary-strong)]" : ""
-            }`}
-            aria-label="Direct messages"
-            title="Direct messages"
-          >
-            <MessagesIcon />
-            <UnreadDot show={hasDmUnread} />
-          </button>
-        </div>
+        <div className="my-2 h-px w-10 bg-[var(--border)]" />
 
-        <div className="mt-auto">
-          <SettingsPopover />
+        {servers.map((server, index) => (
+          <button
+            key={server.id || `${server.name}-${index}`}
+            type="button"
+            onClick={() => onSelectServer(server.id)}
+            className={`relative flex h-12 w-12 items-center justify-center rounded-xl border transition hover:border-[var(--border-strong)] hover:bg-[var(--surface-hover)] ${
+              selectedServerId === server.id && activeTab === "servers"
+                ? "border-[var(--primary)] bg-[var(--primary-faint)]"
+                : "border-[var(--border)] bg-[var(--surface)]"
+            }`}
+            title={server.name}
+            aria-label={server.name}
+          >
+            <Avatar
+              name={server.name}
+              imageUrl={server.imageUrl}
+              className="h-10 w-10 rounded-lg"
+            />
+            <UnreadDot show={unreadServerIds.has(server.id)} />
+          </button>
+        ))}
+
+        <button
+          type="button"
+          onClick={onCreateServer}
+          className="icon-button h-12 w-12 shrink-0"
+          aria-label="Create server"
+          title="Create server"
+        >
+          <PlusIcon />
+        </button>
+
+        <div className="mt-auto pt-2">
+          <SettingsPopover onEditProfileImage={onEditProfileImage} />
         </div>
       </div>
 
@@ -324,52 +373,43 @@ export default function Sidebar({
           <>
             <div className="border-b border-[var(--border)] px-4 py-4">
               <div className="flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-black">Servers</p>
-                  <p className="truncate text-xs font-semibold text-[var(--muted)]">
-                    {servers.length} joined
-                  </p>
+                <div className="flex min-w-0 items-center gap-3">
+                  <Avatar
+                    name={selectedServer?.name}
+                    imageUrl={selectedServer?.imageUrl}
+                    className="h-10 w-10 rounded-lg"
+                  />
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-black">
+                      {selectedServer?.name || "Select a server"}
+                    </p>
+                    <p className="truncate text-xs font-semibold text-[var(--muted)]">
+                      {textChannels.length} text / {voiceChannels.length} voice
+                    </p>
+                  </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={onCreateServer}
-                  className="icon-button h-10 w-10"
-                  aria-label="Create server"
-                  title="Create server"
-                >
-                  <PlusIcon />
-                </button>
+                {canManageServer ? (
+                  <button
+                    type="button"
+                    onClick={onEditServerImage}
+                    className="icon-button h-10 w-10"
+                    aria-label="Set server image"
+                    title="Set server image"
+                  >
+                    <ServerIcon />
+                  </button>
+                ) : null}
               </div>
             </div>
 
             <div className="soft-scrollbar flex-1 overflow-y-auto px-3 py-4">
-              <div className="space-y-2">
-                {servers.map((server, index) => (
-                  <button
-                    key={server.id || `${server.name}-${index}`}
-                    type="button"
-                    onClick={() => onSelectServer(server.id)}
-                    className={`sidebar-item relative ${
-                      selectedServerId === server.id ? "sidebar-item-active" : ""
-                    }`}
-                    title={server.name}
-                  >
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--primary-soft)] text-xs font-black text-[var(--primary-strong)] shadow-sm">
-                      {server.name.slice(0, 2).toUpperCase()}
-                    </span>
-                    <span className="min-w-0 flex-1 truncate">{server.name}</span>
-                    <UnreadDot show={unreadServerIds.has(server.id)} />
-                  </button>
-                ))}
-                {servers.length === 0 ? (
+              <div>
+                <SectionTitle>{selectedServer?.name || "Channels"}</SectionTitle>
+                {!selectedServer ? (
                   <p className="px-3 py-2 text-xs font-semibold text-[var(--faint)]">
-                    Create a server to get started.
+                    Pick a server from the rail.
                   </p>
                 ) : null}
-              </div>
-
-              <div className="mt-6 border-t border-[var(--border)] pt-5">
-                <SectionTitle>{selectedServer?.name || "Channels"}</SectionTitle>
                 {canManageServer ? (
                   <div className="mt-3 grid grid-cols-2 gap-2">
                     <button
@@ -506,7 +546,11 @@ export default function Sidebar({
                     }`}
                     title={thread.participant?.name || "Direct Message"}
                   >
-                    <AtIcon />
+                    <Avatar
+                      name={thread.participant?.name}
+                      imageUrl={thread.participant?.avatarUrl}
+                      className="h-8 w-8 rounded-lg"
+                    />
                     <span className="min-w-0 flex-1 truncate">
                       {thread.participant?.name || "Direct Message"}
                     </span>

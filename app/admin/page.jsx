@@ -13,6 +13,7 @@ export default function AdminPage() {
   const [feedback, setFeedback] = useState("");
   const [updatingId, setUpdatingId] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [confirmAction, setConfirmAction] = useState(null);
 
   useEffect(() => {
     const loadUsers = async () => {
@@ -53,14 +54,11 @@ export default function AdminPage() {
     );
   };
 
-  const handleRoleChange = async (targetUser, nextRole) => {
-    if (!window.confirm(`Change role for ${targetUser.name} to ${nextRole}?`)) {
-      return;
-    }
-
+  const updateUserRole = async (targetUser, nextRole) => {
     setFeedback("");
     setError("");
     setUpdatingId(targetUser.id);
+    setConfirmAction(null);
 
     try {
       const response = await fetch(`/api/admin/users/${targetUser.id}/role`, {
@@ -83,16 +81,11 @@ export default function AdminPage() {
     }
   };
 
-  const handleStatusChange = async (targetUser, isActive) => {
-    const action = isActive ? "activate" : "disable";
-
-    if (!window.confirm(`Are you sure you want to ${action} ${targetUser.name}?`)) {
-      return;
-    }
-
+  const updateUserStatus = async (targetUser, isActive) => {
     setFeedback("");
     setError("");
     setUpdatingId(targetUser.id);
+    setConfirmAction(null);
 
     try {
       const response = await fetch(`/api/admin/users/${targetUser.id}/status`, {
@@ -221,7 +214,13 @@ export default function AdminPage() {
                           disabled={
                             isSelf || updatingId === entry.id || entry.role === "admin"
                           }
-                          onClick={() => handleRoleChange(entry, "admin")}
+                          onClick={() =>
+                            setConfirmAction({
+                              title: "Change role",
+                              body: `Change role for ${entry.name} to admin?`,
+                              onConfirm: () => updateUserRole(entry, "admin"),
+                            })
+                          }
                           className="btn-secondary min-h-0 px-3 py-2 text-xs disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           Make Admin
@@ -231,7 +230,13 @@ export default function AdminPage() {
                           disabled={
                             isSelf || updatingId === entry.id || entry.role === "user"
                           }
-                          onClick={() => handleRoleChange(entry, "user")}
+                          onClick={() =>
+                            setConfirmAction({
+                              title: "Change role",
+                              body: `Change role for ${entry.name} to user?`,
+                              onConfirm: () => updateUserRole(entry, "user"),
+                            })
+                          }
                           className="btn-secondary min-h-0 px-3 py-2 text-xs disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           Make User
@@ -240,7 +245,13 @@ export default function AdminPage() {
                           <button
                             type="button"
                             disabled={isSelf || updatingId === entry.id}
-                            onClick={() => handleStatusChange(entry, false)}
+                            onClick={() =>
+                              setConfirmAction({
+                                title: "Disable user",
+                                body: `Disable ${entry.name}?`,
+                                onConfirm: () => updateUserStatus(entry, false),
+                              })
+                            }
                             className="rounded-full border border-rose-400/40 px-3 py-2 text-xs font-black text-rose-600 transition hover:bg-rose-500/10 disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             Disable User
@@ -249,7 +260,13 @@ export default function AdminPage() {
                           <button
                             type="button"
                             disabled={isSelf || updatingId === entry.id}
-                            onClick={() => handleStatusChange(entry, true)}
+                            onClick={() =>
+                              setConfirmAction({
+                                title: "Activate user",
+                                body: `Activate ${entry.name}?`,
+                                onConfirm: () => updateUserStatus(entry, true),
+                              })
+                            }
                             className="rounded-full border border-emerald-400/40 px-3 py-2 text-xs font-black text-emerald-600 transition hover:bg-emerald-500/10 disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             Activate User
@@ -265,6 +282,33 @@ export default function AdminPage() {
           </div>
         ) : null}
       </div>
+      {confirmAction ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 px-4 py-6">
+          <div className="modal-surface w-full max-w-md rounded-lg border border-[var(--border)] bg-[var(--surface-solid)] p-5 text-[var(--text)] shadow-[var(--shadow-md)]">
+            <h2 className="text-2xl font-black">{confirmAction.title}</h2>
+            <p className="mt-3 text-sm leading-6 text-[var(--text-soft)]">
+              {confirmAction.body}
+            </p>
+            <div className="mt-5 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setConfirmAction(null)}
+                className="btn-secondary min-h-10 px-4 py-2 text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmAction.onConfirm}
+                disabled={Boolean(updatingId)}
+                className="btn-primary min-h-10 px-4 py-2 text-sm"
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }

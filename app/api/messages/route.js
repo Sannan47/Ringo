@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import connectDb from "../../../lib/db";
 import Channel from "../../../models/Channel";
 import Message from "../../../models/Message";
+import { isLocalUploadUrl } from "../../../lib/images";
 import { requireAuth } from "../../../lib/permissions";
 
 export async function POST(request) {
@@ -14,13 +15,18 @@ export async function POST(request) {
   try {
     const body = await request.json();
     const content = String(body?.content || "").trim();
+    const imageUrl = String(body?.imageUrl || "").trim();
     const channelId = String(body?.channelId || "").trim();
 
-    if (!content || !channelId) {
+    if ((!content && !imageUrl) || !channelId) {
       return NextResponse.json(
-        { message: "Message content and channelId are required" },
+        { message: "Message content or image and channelId are required" },
         { status: 400 }
       );
+    }
+
+    if (imageUrl && !isLocalUploadUrl(imageUrl)) {
+      return NextResponse.json({ message: "Invalid image" }, { status: 400 });
     }
 
     await connectDb();
@@ -33,6 +39,7 @@ export async function POST(request) {
 
     const message = await Message.create({
       content,
+      imageUrl,
       channelId,
       senderId: user.userId,
     });

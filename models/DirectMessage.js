@@ -7,7 +7,8 @@ const DirectMessageSchema = new mongoose.Schema({
     required: true,
   },
   senderId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-  content: { type: String, required: true, trim: true },
+  content: { type: String, default: "", trim: true },
+  imageUrl: { type: String, trim: true },
   createdAt: { type: Date, default: Date.now },
 });
 

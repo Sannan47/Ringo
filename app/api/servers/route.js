@@ -16,6 +16,7 @@ export async function GET(request) {
     const formatted = servers.map((server) => ({
       id: server._id.toString(),
       name: server.name,
+      imageUrl: server.imageUrl || "",
       ownerId: server.ownerId.toString(),
     }));
 
@@ -53,6 +54,7 @@ export async function POST(request) {
         server: {
           id: server._id.toString(),
           name: server.name,
+          imageUrl: server.imageUrl || "",
           ownerId: server.ownerId.toString(),
         },
       },

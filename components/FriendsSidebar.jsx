@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Image from "next/image";
 
 function EmptyState({ children }) {
   return (
@@ -75,7 +76,17 @@ function FriendRow({ friend, isOnline, onStartDm }) {
       title={`Message ${friend.name}`}
     >
       <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--primary-soft)] text-xs font-black text-[var(--primary-strong)]">
-        {friend.name?.slice(0, 1).toUpperCase() || "?"}
+        {friend.avatarUrl ? (
+          <Image
+            src={friend.avatarUrl}
+            alt=""
+            width={40}
+            height={40}
+            className="h-full w-full rounded-xl object-cover"
+          />
+        ) : (
+          friend.name?.slice(0, 1).toUpperCase() || "?"
+        )}
         <span
           className={`absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-[var(--surface-solid)] ${
             isOnline ? "bg-emerald-500" : "bg-[var(--faint)]"

@@ -10,6 +10,7 @@ import DirectThread from "./models/DirectThread.js";
 import Server from "./models/Server.js";
 import User from "./models/User.js";
 import { verifyToken } from "./lib/auth.js";
+import { isLocalUploadUrl } from "./lib/images.js";
 import { registerVoiceHandlers } from "./socket/index.js";
 
 const { loadEnvConfig } = nextEnv;
@@ -59,6 +60,7 @@ io.use(async (socket, nextMiddleware) => {
     socket.user = {
       ...user,
       name: userDoc?.name || "User",
+      avatarUrl: userDoc?.avatarUrl || "",
     };
 
     return nextMiddleware();
@@ -183,10 +185,15 @@ io.on("connection", (socket) => {
     });
   });
 
-  socket.on("send_message", async ({ channelId, content }) => {
+  socket.on("send_message", async ({ channelId, content, imageUrl }) => {
     const trimmed = String(content || "").trim();
+    const normalizedImageUrl = String(imageUrl || "").trim();
 
-    if (!channelId || !trimmed) {
+    if (!channelId || (!trimmed && !normalizedImageUrl)) {
+      return;
+    }
+
+    if (normalizedImageUrl && !isLocalUploadUrl(normalizedImageUrl)) {
       return;
     }
 
@@ -201,6 +208,7 @@ io.on("connection", (socket) => {
 
       const message = await Message.create({
         content: trimmed,
+        imageUrl: normalizedImageUrl,
         channelId,
         senderId: socket.user.userId,
       });
@@ -208,12 +216,14 @@ io.on("connection", (socket) => {
       io.to(channelId).emit("receive_message", {
         id: message._id.toString(),
         content: message.content,
+        imageUrl: message.imageUrl || "",
         channelId,
         serverId: channel.serverId.toString(),
         createdAt: message.createdAt,
         sender: {
           id: socket.user.userId,
           name: socket.user.name,
+          avatarUrl: socket.user.avatarUrl || "",
         },
       });
 
@@ -227,12 +237,14 @@ io.on("connection", (socket) => {
         message: {
           id: message._id.toString(),
           content: message.content,
+          imageUrl: message.imageUrl || "",
           channelId,
           serverId: channel.serverId.toString(),
           createdAt: message.createdAt,
           sender: {
             id: socket.user.userId,
             name: socket.user.name,
+            avatarUrl: socket.user.avatarUrl || "",
           },
         },
       };
@@ -262,10 +274,15 @@ io.on("connection", (socket) => {
     socket.leave(`dm:${threadId}`);
   });
 
-  socket.on("send_dm", async ({ threadId, content }) => {
+  socket.on("send_dm", async ({ threadId, content, imageUrl }) => {
     const trimmed = String(content || "").trim();
+    const normalizedImageUrl = String(imageUrl || "").trim();
 
-    if (!threadId || !trimmed) {
+    if (!threadId || (!trimmed && !normalizedImageUrl)) {
+      return;
+    }
+
+    if (normalizedImageUrl && !isLocalUploadUrl(normalizedImageUrl)) {
       return;
     }
 
@@ -283,6 +300,7 @@ io.on("connection", (socket) => {
 
       const message = await DirectMessage.create({
         content: trimmed,
+        imageUrl: normalizedImageUrl,
         threadId,
         senderId: socket.user.userId,
       });
@@ -290,17 +308,19 @@ io.on("connection", (socket) => {
       io.to(`dm:${threadId}`).emit("receive_dm", {
         id: message._id.toString(),
         content: message.content,
+        imageUrl: message.imageUrl || "",
         threadId,
         createdAt: message.createdAt,
         sender: {
           id: socket.user.userId,
           name: socket.user.name,
+          avatarUrl: socket.user.avatarUrl || "",
         },
       });
 
       const participantIds = thread.participants.map((entry) => entry.toString());
       const participants = await User.find({ _id: { $in: participantIds } })
-        .select("name email")
+        .select("name email avatarUrl")
         .lean();
       const usersById = new Map(
         participants.map((participant) => [participant._id.toString(), participant])
@@ -316,19 +336,22 @@ io.on("connection", (socket) => {
             participant: partner
               ? {
                   id: partner._id.toString(),
-                  name: partner.name,
-                  email: partner.email,
+          name: partner.name,
+          email: partner.email,
+          avatarUrl: partner.avatarUrl || "",
                 }
               : null,
           },
           message: {
             id: message._id.toString(),
             content: message.content,
+            imageUrl: message.imageUrl || "",
             threadId,
             createdAt: message.createdAt,
             sender: {
               id: socket.user.userId,
               name: socket.user.name,
+              avatarUrl: socket.user.avatarUrl || "",
             },
           },
         });

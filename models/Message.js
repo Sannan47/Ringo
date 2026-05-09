@@ -1,7 +1,8 @@
 import mongoose from "mongoose";
 
 const MessageSchema = new mongoose.Schema({
-  content: { type: String, required: true, trim: true },
+  content: { type: String, default: "", trim: true },
+  imageUrl: { type: String, trim: true },
   channelId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Channel",

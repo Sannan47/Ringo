@@ -17,7 +17,7 @@ export async function GET(request) {
     await connectDb();
 
     const threads = await DirectThread.find({ participants: user.userId })
-      .populate("participants", "name email")
+      .populate("participants", "name email avatarUrl")
       .lean();
 
     const threadIds = threads.map((thread) => thread._id);
@@ -55,6 +55,7 @@ export async function GET(request) {
               id: partner._id.toString(),
               name: partner.name,
               email: partner.email,
+              avatarUrl: partner.avatarUrl || "",
             }
           : null,
       };
