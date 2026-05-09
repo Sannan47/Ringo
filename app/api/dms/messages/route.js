@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import connectDb from "../../../../lib/db";
 import DirectMessage from "../../../../models/DirectMessage";
 import DirectThread from "../../../../models/DirectThread";
-import { isLocalUploadUrl } from "../../../../lib/images";
+import { isStoredImageUrl } from "../../../../lib/images";
 import { requireAuth } from "../../../../lib/permissions";
 
 export async function POST(request) {
@@ -25,7 +25,7 @@ export async function POST(request) {
       );
     }
 
-    if (imageUrl && !isLocalUploadUrl(imageUrl)) {
+    if (imageUrl && !isStoredImageUrl(imageUrl)) {
       return NextResponse.json({ error: "Invalid image" }, { status: 400 });
     }
 

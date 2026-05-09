@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import connectDb from "../../../../lib/db";
 import User from "../../../../models/User";
-import { isLocalUploadUrl } from "../../../../lib/images";
+import { isStoredImageUrl } from "../../../../lib/images";
 import { requireAuth } from "../../../../lib/permissions";
 
 export async function GET(request) {
@@ -43,7 +43,7 @@ export async function PATCH(request) {
     const body = await request.json();
     const avatarUrl = String(body?.avatarUrl || "").trim();
 
-    if (avatarUrl && !isLocalUploadUrl(avatarUrl)) {
+    if (avatarUrl && !isStoredImageUrl(avatarUrl)) {
       return NextResponse.json({ error: "Invalid image" }, { status: 400 });
     }
 

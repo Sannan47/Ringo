@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../context/AuthContext";
@@ -31,6 +32,45 @@ function SettingsIcon() {
     >
       <path d="M12 15.5A3.5 3.5 0 1 0 12 8a3.5 3.5 0 0 0 0 7.5Z" />
       <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6V20a2 2 0 1 1-4 0v-.08a1.7 1.7 0 0 0-1-.52 1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1H4a2 2 0 1 1 0-4h.08a1.7 1.7 0 0 0 .52-1 1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6V4a2 2 0 1 1 4 0v.08a1.7 1.7 0 0 0 1 .52 1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9c.22.36.42.72.6 1H20a2 2 0 1 1 0 4h-.08a1.7 1.7 0 0 0-.52 1Z" />
+    </svg>
+  );
+}
+
+function ImageIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-4 w-4"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <circle cx="8.5" cy="10.5" r="1.5" />
+      <path d="m21 15-4.5-4.5L7 20" />
+    </svg>
+  );
+}
+
+function LogoutIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-4 w-4"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M10 17 15 12 10 7" />
+      <path d="M15 12H3" />
+      <path d="M21 19V5a2 2 0 0 0-2-2h-5" />
+      <path d="M14 21h5a2 2 0 0 0 2-2" />
     </svg>
   );
 }
@@ -76,7 +116,28 @@ function SettingsPopover({ onEditProfileImage }) {
   const [isOpen, setIsOpen] = useState(false);
   const [theme, setTheme] = useState("light");
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [popoverPosition, setPopoverPosition] = useState(null);
   const popoverRef = useRef(null);
+  const triggerRef = useRef(null);
+
+  const updatePopoverPosition = useCallback(() => {
+    const triggerRect = triggerRef.current?.getBoundingClientRect();
+    if (!triggerRect) {
+      return;
+    }
+
+    const gap = 12;
+    const margin = 12;
+    const width = 256;
+    const panelWidth = Math.min(width, window.innerWidth - margin * 2);
+    const left = Math.min(
+      Math.max(triggerRect.right + gap, margin),
+      window.innerWidth - panelWidth - margin
+    );
+    const bottom = Math.max(window.innerHeight - triggerRect.bottom, margin);
+
+    setPopoverPosition({ left, bottom });
+  }, []);
 
   useEffect(() => {
     const preferred = getPreferredTheme();
@@ -94,12 +155,22 @@ function SettingsPopover({ onEditProfileImage }) {
       if (popoverRef.current?.contains(event.target)) {
         return;
       }
+      if (triggerRef.current?.contains(event.target)) {
+        return;
+      }
       setIsOpen(false);
     };
 
     document.addEventListener("pointerdown", handlePointerDown);
-    return () => document.removeEventListener("pointerdown", handlePointerDown);
-  }, [isOpen]);
+    window.addEventListener("resize", updatePopoverPosition);
+    window.addEventListener("scroll", updatePopoverPosition, true);
+
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      window.removeEventListener("resize", updatePopoverPosition);
+      window.removeEventListener("scroll", updatePopoverPosition, true);
+    };
+  }, [isOpen, updatePopoverPosition]);
 
   const toggleTheme = () => {
     const nextTheme = theme === "dark" ? "light" : "dark";
@@ -125,73 +196,111 @@ function SettingsPopover({ onEditProfileImage }) {
     }
   };
 
-  return (
-    <div ref={popoverRef} className="relative">
-      {isOpen ? (
-        <div className="modal-surface absolute bottom-12 left-0 z-40 w-64 rounded-lg border border-[var(--border)] bg-[var(--surface-solid)] p-4 text-[var(--text)] shadow-[var(--shadow-md)]">
-          <div>
-            <p className="text-xs font-black uppercase tracking-[0.14em] text-[var(--faint)]">
-              Account
-            </p>
-            <p className="mt-2 truncate text-sm font-black">
-              {user?.name || user?.email || "You"}
-            </p>
-            {user?.email ? (
-              <p className="mt-1 truncate text-xs font-semibold text-[var(--muted)]">
-                {user.email}
-              </p>
-            ) : null}
-          </div>
+  const handleToggleSettings = () => {
+    if (isOpen) {
+      setIsOpen(false);
+      return;
+    }
 
-          <div className="mt-4 flex items-center justify-between gap-3 rounded-lg border border-[var(--border)] px-3 py-2">
-            <span className="text-sm font-bold text-[var(--text-soft)]">
-              Dark theme
-            </span>
-            <button
-              type="button"
-              onClick={toggleTheme}
-              className={`relative h-6 w-11 rounded-full border transition ${
-                theme === "dark"
-                  ? "border-[var(--primary)] bg-[var(--primary)]"
-                  : "border-[var(--border-strong)] bg-[var(--surface-muted)]"
-              }`}
-              aria-pressed={theme === "dark"}
-              aria-label="Toggle dark theme"
-            >
-              <span
-                className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition ${
-                  theme === "dark" ? "left-5" : "left-0.5"
-                }`}
-              />
-            </button>
-          </div>
+    updatePopoverPosition();
+    setIsOpen(true);
+  };
 
-          <button
-            type="button"
-            onClick={() => {
-              setIsOpen(false);
-              onEditProfileImage?.();
+  const settingsPanel =
+    isOpen && popoverPosition
+      ? createPortal(
+          <div
+            ref={popoverRef}
+            role="dialog"
+            aria-label="Settings"
+            className="modal-surface fixed z-50 w-64 max-w-[calc(100vw-1.5rem)] rounded-lg border border-[var(--border)] bg-[var(--surface-solid)] p-4 text-[var(--text)] shadow-[var(--shadow-md)]"
+            style={{
+              left: `${popoverPosition.left}px`,
+              bottom: `${popoverPosition.bottom}px`,
             }}
-            className="mt-3 text-left text-sm font-black text-[var(--text)] transition hover:text-[var(--primary-strong)]"
           >
-            Profile image
-          </button>
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.14em] text-[var(--faint)]">
+                Account
+              </p>
+              <p className="mt-2 truncate text-sm font-black">
+                {user?.name || user?.email || "You"}
+              </p>
+              {user?.email ? (
+                <p className="mt-1 truncate text-xs font-semibold text-[var(--muted)]">
+                  {user.email}
+                </p>
+              ) : null}
+            </div>
 
-          <button
-            type="button"
-            onClick={handleLogout}
-            disabled={isLoggingOut}
-            className="mt-3 text-left text-sm font-black text-rose-600 transition hover:text-rose-500 disabled:opacity-60"
-          >
-            {isLoggingOut ? "Logging out..." : "Logout"}
-          </button>
-        </div>
-      ) : null}
+            <div className="mt-4 flex items-center justify-between gap-3 rounded-lg border border-[var(--border)] px-3 py-2">
+              <span className="text-sm font-bold text-[var(--text-soft)]">
+                Dark theme
+              </span>
+              <button
+                type="button"
+                onClick={toggleTheme}
+                className={`relative h-6 w-11 rounded-full border transition ${
+                  theme === "dark"
+                    ? "border-[var(--primary)] bg-[var(--primary)]"
+                    : "border-[var(--border-strong)] bg-[var(--surface-muted)]"
+                }`}
+                aria-pressed={theme === "dark"}
+                aria-label="Toggle dark theme"
+              >
+                <span
+                  className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition ${
+                    theme === "dark" ? "left-5" : "left-0.5"
+                  }`}
+                />
+              </button>
+            </div>
+
+            <div className="mt-4 space-y-2 border-t border-[var(--border)] pt-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsOpen(false);
+                  onEditProfileImage?.();
+                }}
+                className="flex min-h-11 w-full items-center gap-3 rounded-lg border border-transparent px-3 py-2 text-left text-sm font-black text-[var(--text)] transition hover:border-[var(--border)] hover:bg-[var(--surface-hover)]"
+              >
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--primary-faint)] text-[var(--primary-strong)]">
+                  <ImageIcon />
+                </span>
+                <span className="min-w-0 flex-1 truncate">Profile image</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleLogout}
+                disabled={isLoggingOut}
+                className="flex min-h-11 w-full items-center gap-3 rounded-lg border border-rose-400/20 px-3 py-2 text-left text-sm font-black text-rose-600 transition hover:bg-rose-500/10 hover:text-rose-500 disabled:opacity-60"
+              >
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-rose-500/10 text-rose-600">
+                  <LogoutIcon />
+                </span>
+                <span className="min-w-0 flex-1 truncate">
+                  {isLoggingOut ? "Logging out..." : "Logout"}
+                </span>
+              </button>
+            </div>
+          </div>,
+          document.body
+        )
+      : null;
+
+  return (
+    <div className="relative">
+      {settingsPanel}
       <button
+        ref={triggerRef}
         type="button"
-        onClick={() => setIsOpen((current) => !current)}
+        onClick={handleToggleSettings}
         className="icon-button h-10 w-10"
         aria-label="Open settings"
+        aria-expanded={isOpen}
+        aria-haspopup="dialog"
         title="Settings"
       >
         <SettingsIcon />

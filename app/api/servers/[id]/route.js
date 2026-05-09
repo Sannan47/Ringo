@@ -3,7 +3,7 @@ import connectDb from "../../../../lib/db";
 import Channel from "../../../../models/Channel";
 import Message from "../../../../models/Message";
 import Server from "../../../../models/Server";
-import { isLocalUploadUrl } from "../../../../lib/images";
+import { isStoredImageUrl } from "../../../../lib/images";
 import { requireAuth, requireServerOwner } from "../../../../lib/permissions";
 
 export async function PATCH(request, { params }) {
@@ -29,7 +29,7 @@ export async function PATCH(request, { params }) {
       return NextResponse.json({ error: "Server name is required" }, { status: 400 });
     }
 
-    if (imageUrl !== undefined && imageUrl && !isLocalUploadUrl(imageUrl)) {
+    if (imageUrl !== undefined && imageUrl && !isStoredImageUrl(imageUrl)) {
       return NextResponse.json({ error: "Invalid image" }, { status: 400 });
     }
 

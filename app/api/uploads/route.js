@@ -1,15 +1,24 @@
-import { randomUUID } from "crypto";
-import { mkdir, writeFile } from "fs/promises";
-import path from "path";
+import { createHash } from "crypto";
 import { NextResponse } from "next/server";
 import { requireAuth } from "../../../lib/permissions";
 import {
-  imageExtensions,
   isAllowedImageType,
   MAX_IMAGE_BYTES,
 } from "../../../lib/images";
 
 const allowedScopes = new Set(["avatars", "servers", "messages"]);
+
+const signCloudinaryParams = (params, apiSecret) => {
+  const signatureBase = Object.entries(params)
+    .filter(([, value]) => value !== undefined && value !== "")
+    .sort(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey))
+    .map(([key, value]) => `${key}=${value}`)
+    .join("&");
+
+  return createHash("sha1")
+    .update(`${signatureBase}${apiSecret}`)
+    .digest("hex");
+};
 
 export async function POST(request) {
   const { response } = requireAuth(request);
@@ -45,17 +54,52 @@ export async function POST(request) {
       );
     }
 
-    const extension = imageExtensions[file.type];
-    const fileName = `${randomUUID().replace(/-/g, "")}.${extension}`;
-    const uploadDir = path.join(process.cwd(), "public", "uploads", scope);
-    const filePath = path.join(uploadDir, fileName);
-    const buffer = Buffer.from(await file.arrayBuffer());
+    const cloudName = process.env.CLOUDINARY_CLOUD_NAME?.trim();
+    const apiKey = process.env.CLOUDINARY_API_KEY?.trim();
+    const apiSecret = process.env.CLOUDINARY_API_SECRET?.trim();
 
-    await mkdir(uploadDir, { recursive: true });
-    await writeFile(filePath, buffer);
+    if (!cloudName || !apiKey || !apiSecret) {
+      return NextResponse.json(
+        { error: "Image storage is not configured" },
+        { status: 500 }
+      );
+    }
+
+    const baseFolder = process.env.CLOUDINARY_UPLOAD_FOLDER?.trim() || "ringo";
+    const folder = `${baseFolder}/${scope}`;
+    const timestamp = Math.floor(Date.now() / 1000);
+    const uploadParams = { folder, timestamp };
+    const uploadFormData = new FormData();
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const blob = new Blob([buffer], { type: file.type });
+
+    uploadFormData.append("file", blob, file.name || "upload");
+    uploadFormData.append("api_key", apiKey);
+    uploadFormData.append("folder", folder);
+    uploadFormData.append("timestamp", String(timestamp));
+    uploadFormData.append(
+      "signature",
+      signCloudinaryParams(uploadParams, apiSecret)
+    );
+
+    const uploadResponse = await fetch(
+      `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+      {
+        method: "POST",
+        body: uploadFormData,
+      }
+    );
+    const uploadData = await uploadResponse.json();
+
+    if (!uploadResponse.ok || !uploadData?.secure_url) {
+      return NextResponse.json(
+        { error: "Unable to upload image" },
+        { status: 502 }
+      );
+    }
 
     return NextResponse.json(
-      { url: `/uploads/${scope}/${fileName}` },
+      { url: uploadData.secure_url },
       { status: 201 }
     );
   } catch {

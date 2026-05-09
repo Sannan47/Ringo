@@ -10,7 +10,7 @@ import DirectThread from "./models/DirectThread.js";
 import Server from "./models/Server.js";
 import User from "./models/User.js";
 import { verifyToken } from "./lib/auth.js";
-import { isLocalUploadUrl } from "./lib/images.js";
+import { isStoredImageUrl } from "./lib/images.js";
 import { registerVoiceHandlers } from "./socket/index.js";
 
 const { loadEnvConfig } = nextEnv;
@@ -193,7 +193,7 @@ io.on("connection", (socket) => {
       return;
     }
 
-    if (normalizedImageUrl && !isLocalUploadUrl(normalizedImageUrl)) {
+    if (normalizedImageUrl && !isStoredImageUrl(normalizedImageUrl)) {
       return;
     }
 
@@ -282,7 +282,7 @@ io.on("connection", (socket) => {
       return;
     }
 
-    if (normalizedImageUrl && !isLocalUploadUrl(normalizedImageUrl)) {
+    if (normalizedImageUrl && !isStoredImageUrl(normalizedImageUrl)) {
       return;
     }
 
