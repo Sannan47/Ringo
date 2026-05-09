@@ -81,6 +81,28 @@ const readJsonBody = async (req) =>
   });
 
 const httpServer = createServer((req, res) => {
+  // Set CORS headers for all responses
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin) || allowedOrigins.includes("*")) {
+    res.setHeader("Access-Control-Allow-Origin", origin || "*");
+  }
+  res.setHeader(
+    "Access-Control-Allow-Methods",
+    "GET, POST, PUT, DELETE, OPTIONS",
+  );
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Authorization, X-Internal-Secret",
+  );
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+
+  // Handle preflight requests
+  if (req.method === "OPTIONS") {
+    res.writeHead(200);
+    res.end();
+    return;
+  }
+
   if (req.url === "/health") {
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ ok: true, service: "ringo-realtime" }));
@@ -121,7 +143,28 @@ const httpServer = createServer((req, res) => {
 });
 const io = new SocketIOServer(httpServer, {
   cors: {
-    origin: allowedOrigins,
+    origin: function (origin, callback) {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+      
+      // Check if origin is in allowed origins
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      
+      // Allow localhost for development
+      if (origin.startsWith("http://localhost:") || origin.startsWith("http://127.0.0.1:")) {
+        return callback(null, true);
+      }
+      
+      // Allow any origin if "*" is in allowed origins
+      if (allowedOrigins.includes("*")) {
+        return callback(null, true);
+      }
+      
+      console.log("CORS blocked origin:", origin, "allowedOrigins:", allowedOrigins);
+      callback(new Error("Not allowed by CORS"));
+    },
     credentials: true,
   },
 });
@@ -199,7 +242,7 @@ globalThis.ringoRealtime = {
 const emitFriendsPresence = (socket) => {
   const watchedIds = [...(socket.friendWatchIds || [])];
   const onlineUserIds = watchedIds.filter((userId) =>
-    connectedUsers.has(userId)
+    connectedUsers.has(userId),
   );
 
   socket.emit("friends_presence", { onlineUserIds });
@@ -224,7 +267,7 @@ io.on("connection", (socket) => {
     socket.friendWatchIds = new Set(
       Array.isArray(friendIds)
         ? friendIds.map((id) => String(id)).filter(Boolean)
-        : []
+        : [],
     );
     emitFriendsPresence(socket);
   });
@@ -336,7 +379,9 @@ io.on("connection", (socket) => {
       (server?.members || [])
         .map((memberId) => memberId.toString())
         .filter((memberId) => memberId !== socket.user.userId)
-        .forEach((memberId) => emitToUser(memberId, "server_activity", payload));
+        .forEach((memberId) =>
+          emitToUser(memberId, "server_activity", payload),
+        );
     } catch (error) {
       console.error("socket message error", error);
     }
@@ -402,12 +447,17 @@ io.on("connection", (socket) => {
         },
       });
 
-      const participantIds = thread.participants.map((entry) => entry.toString());
+      const participantIds = thread.participants.map((entry) =>
+        entry.toString(),
+      );
       const participants = await User.find({ _id: { $in: participantIds } })
         .select("name email avatarUrl")
         .lean();
       const usersById = new Map(
-        participants.map((participant) => [participant._id.toString(), participant])
+        participants.map((participant) => [
+          participant._id.toString(),
+          participant,
+        ]),
       );
 
       participantIds.forEach((participantId) => {
@@ -420,9 +470,9 @@ io.on("connection", (socket) => {
             participant: partner
               ? {
                   id: partner._id.toString(),
-          name: partner.name,
-          email: partner.email,
-          avatarUrl: partner.avatarUrl || "",
+                  name: partner.name,
+                  email: partner.email,
+                  avatarUrl: partner.avatarUrl || "",
                 }
               : null,
           },
