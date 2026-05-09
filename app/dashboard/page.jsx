@@ -112,7 +112,36 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
-    loadFriends();
+    let isMounted = true;
+
+    const loadInitialFriends = async () => {
+      try {
+        const response = await fetch("/api/friends/requests");
+        const data = await response.json();
+
+        if (!isMounted) {
+          return;
+        }
+
+        if (response.ok) {
+          setIncomingRequests(data.incoming || []);
+          setOutgoingRequests(data.outgoing || []);
+          setFriends(data.friends || []);
+        }
+      } catch (error) {
+        if (isMounted) {
+          setIncomingRequests([]);
+          setOutgoingRequests([]);
+          setFriends([]);
+        }
+      }
+    };
+
+    loadInitialFriends();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   useEffect(() => {

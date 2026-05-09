@@ -46,30 +46,30 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 px-6 py-16 text-white">
+    <main className="ringo-page px-4 py-16">
       <div className="mx-auto w-full max-w-lg">
         <div className="mb-8">
-          <p className="text-xs uppercase tracking-[0.25em] text-slate-500">
-            Password reset
-          </p>
-          <h1 className="mt-3 text-3xl font-semibold">Forgot your password?</h1>
-          <p className="mt-3 text-sm text-slate-300">
+          <div className="eyebrow">Password reset</div>
+          <h1 className="mt-4 text-3xl font-black text-[var(--text)]">
+            Forgot your password?
+          </h1>
+          <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
             Enter your email and we will generate a reset link for you.
           </p>
         </div>
 
         {error ? (
-          <div className="mb-4 rounded-2xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+          <div className="mb-4 rounded-lg border border-rose-400/40 bg-rose-500/10 px-4 py-3 text-sm text-rose-600">
             {error}
           </div>
         ) : null}
 
         {message ? (
-          <div className="mb-4 rounded-2xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+          <div className="mb-4 rounded-lg border border-emerald-400/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-600">
             {message}
             {resetLink ? (
               <div className="mt-2">
-                <Link className="text-emerald-100 underline" href={resetLink}>
+                <Link className="font-bold underline" href={resetLink}>
                   {resetLink}
                 </Link>
               </div>
@@ -78,11 +78,11 @@ export default function ForgotPasswordPage() {
         ) : null}
 
         <form
-          className="space-y-5 rounded-3xl border border-slate-800 bg-slate-900/60 p-6"
+          className="ringo-panel space-y-5 p-6"
           onSubmit={handleSubmit}
         >
           <div>
-            <label className="text-sm font-medium text-slate-200" htmlFor="email">
+            <label className="text-sm font-bold text-[var(--text)]" htmlFor="email">
               Email
             </label>
             <input
@@ -91,24 +91,24 @@ export default function ForgotPasswordPage() {
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               placeholder="you@ringo.dev"
-              className="mt-2 w-full rounded-xl border border-slate-800 bg-slate-950/70 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-sky-500 focus:outline-none"
+              className="field mt-2"
             />
           </div>
           <button
             type="submit"
             disabled={isSubmitting}
-            className="rounded-full bg-sky-500 px-6 py-3 text-sm font-semibold text-white transition hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-70"
+            className="btn-primary text-sm"
           >
             {isSubmitting ? "Generating..." : "Send reset link"}
           </button>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-[var(--muted)]">
             Remembered your password?{" "}
-            <Link className="underline" href="/login">
+            <Link className="font-bold text-[var(--primary-strong)]" href="/login">
               Back to login
             </Link>
           </p>
         </form>
       </div>
-    </div>
+    </main>
   );
 }

@@ -1,5 +1,41 @@
 "use client";
 
+function SectionTitle({ children }) {
+  return (
+    <p className="hidden px-2 text-xs font-black uppercase tracking-[0.14em] text-[var(--faint)] sm:block">
+      {children}
+    </p>
+  );
+}
+
+function HashIcon() {
+  return <span className="w-4 text-center text-[var(--faint)]">#</span>;
+}
+
+function AtIcon() {
+  return <span className="w-4 text-center text-[var(--faint)]">@</span>;
+}
+
+function UsersIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-4 w-4 text-[var(--faint)]"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  );
+}
+
 export default function Sidebar({
   servers,
   dmThreads,
@@ -21,47 +57,46 @@ export default function Sidebar({
   isFriendsView,
 }) {
   return (
-    <aside className="flex h-full w-20 flex-col border-r border-slate-800 bg-slate-900 text-slate-100 sm:w-64">
-      <div className="flex items-center justify-center border-b border-slate-800 px-4 py-4 sm:justify-start">
-        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-sky-500 text-lg font-semibold text-white">
-          R
+    <aside className="flex h-[calc(100vh-65px)] w-[76px] shrink-0 flex-col border-r border-[var(--border)] bg-[var(--surface-solid)] text-[var(--text)] sm:w-72">
+      <div className="border-b border-[var(--border)] px-3 py-4 sm:px-4">
+        <div className="flex items-center justify-center gap-3 sm:justify-start">
+          <span className="brand-mark h-10 w-10 rounded-xl">R</span>
+          <div className="hidden min-w-0 sm:block">
+            <p className="truncate text-sm font-black">Workspace</p>
+            <p className="truncate text-xs text-[var(--muted)]">
+              Channels and messages
+            </p>
+          </div>
         </div>
-        <span className="ml-3 hidden text-sm font-semibold tracking-wide sm:inline">
-          Ringo
-        </span>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-3 py-4">
+      <div className="flex-1 space-y-7 overflow-y-auto px-3 py-4">
         <div>
-          <p className="hidden text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 sm:block">
-            Direct Messages
-          </p>
+          <SectionTitle>Direct messages</SectionTitle>
           <div className="mt-3 space-y-1">
             <button
               type="button"
               onClick={onShowFriends}
-              className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition ${
-                isFriendsView
-                  ? "bg-slate-800 text-white"
-                  : "text-slate-300 hover:bg-slate-800/70"
-              }`}
+              className={`sidebar-item ${isFriendsView ? "sidebar-item-active" : ""}`}
+              title="Friends"
             >
-              <span className="text-slate-500">★</span>
-              <span className="hidden sm:inline">Friends</span>
+              <UsersIcon />
+              <span className="hidden truncate sm:inline">Friends</span>
             </button>
             {dmThreads.map((thread, index) => (
               <button
                 key={thread.id || `${thread.participant?.email}-${index}`}
                 type="button"
                 onClick={() => onSelectThread(thread.id)}
-                className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition ${
+                className={`sidebar-item ${
                   selectedThreadId === thread.id && !isFriendsView
-                    ? "bg-slate-800 text-white"
-                    : "text-slate-300 hover:bg-slate-800/70"
+                    ? "sidebar-item-active"
+                    : ""
                 }`}
+                title={thread.participant?.name || "Direct Message"}
               >
-                <span className="text-slate-500">@</span>
-                <span className="hidden sm:inline">
+                <AtIcon />
+                <span className="hidden truncate sm:inline">
                   {thread.participant?.name || "Direct Message"}
                 </span>
               </button>
@@ -70,72 +105,71 @@ export default function Sidebar({
         </div>
 
         <div>
-          <p className="hidden text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 sm:block">
-            Servers
-          </p>
+          <SectionTitle>Servers</SectionTitle>
           <div className="mt-3 space-y-2">
             {servers.map((server, index) => (
               <button
                 key={server.id || `${server.name}-${index}`}
                 type="button"
                 onClick={() => onSelectServer(server.id)}
-                className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm transition ${
-                  selectedServerId === server.id
-                    ? "bg-slate-800 text-white"
-                    : "text-slate-200 hover:bg-slate-800"
+                className={`sidebar-item ${
+                  selectedServerId === server.id ? "sidebar-item-active" : ""
                 }`}
+                title={server.name}
               >
-                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-800 text-xs font-semibold text-slate-200">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--primary-soft)] text-xs font-black text-[var(--primary-strong)]">
                   {server.name.slice(0, 2).toUpperCase()}
                 </span>
-                <span className="hidden sm:inline">{server.name}</span>
+                <span className="hidden truncate sm:inline">{server.name}</span>
               </button>
             ))}
           </div>
           <button
             type="button"
             onClick={onCreateServer}
-            className="mt-4 w-full rounded-xl border border-dashed border-slate-700 px-3 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 transition hover:border-slate-500 hover:text-slate-200"
+            className="btn-secondary mt-4 w-full text-xs"
+            title="Create server"
           >
-            + Create Server
+            <span>+</span>
+            <span className="hidden sm:inline">Create Server</span>
           </button>
           {canManageServer ? (
-            <div className="mt-3 space-y-2">
+            <div className="mt-3 grid gap-2">
               <button
                 type="button"
                 onClick={onCreateInvite}
-                className="w-full rounded-xl border border-slate-700 px-3 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-300 transition hover:border-slate-500 hover:text-white"
+                className="btn-secondary w-full text-xs"
               >
-                Create Invite
+                Invite
               </button>
               <button
                 type="button"
                 onClick={onRenameServer}
-                className="w-full rounded-xl border border-slate-700 px-3 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-300 transition hover:border-slate-500 hover:text-white"
+                className="btn-secondary w-full text-xs"
               >
-                Rename Server
+                Rename
               </button>
               <button
                 type="button"
                 onClick={onDeleteServer}
-                className="w-full rounded-xl border border-rose-500/40 px-3 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-rose-200 transition hover:border-rose-400"
+                className="w-full rounded-full border border-rose-400/40 px-3 py-2 text-xs font-black text-rose-600 transition hover:bg-rose-500/10 disabled:opacity-60"
               >
-                Delete Server
+                Delete
               </button>
             </div>
           ) : null}
         </div>
 
-        <div className="mt-6">
-          <p className="hidden text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 sm:block">
-            Channels
-          </p>
+        <div>
+          <SectionTitle>Channels</SectionTitle>
           <div className="mt-3 space-y-1">
             {isLoadingChannels ? (
-              <p className="px-3 py-2 text-xs text-slate-500">Loading...</p>
+              <p className="px-3 py-2 text-xs font-semibold text-[var(--faint)]">
+                Loading...
+              </p>
             ) : null}
             {channels.length === 0 ? (
-              <p className="px-3 py-2 text-xs text-slate-500">
+              <p className="hidden px-3 py-2 text-xs font-semibold text-[var(--faint)] sm:block">
                 No channels yet.
               </p>
             ) : null}
@@ -144,14 +178,13 @@ export default function Sidebar({
                 key={channel.id || `${channel.name}-${index}`}
                 type="button"
                 onClick={() => onSelectChannel(channel.id)}
-                className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition ${
-                  selectedChannelId === channel.id
-                    ? "bg-slate-800 text-white"
-                    : "text-slate-300 hover:bg-slate-800/70"
+                className={`sidebar-item ${
+                  selectedChannelId === channel.id ? "sidebar-item-active" : ""
                 }`}
+                title={channel.name}
               >
-                <span className="text-slate-500">#</span>
-                <span className="hidden sm:inline">{channel.name}</span>
+                <HashIcon />
+                <span className="hidden truncate sm:inline">{channel.name}</span>
               </button>
             ))}
           </div>
@@ -160,9 +193,11 @@ export default function Sidebar({
               type="button"
               onClick={onCreateChannel}
               disabled={!selectedServerId}
-              className="mt-3 w-full rounded-xl border border-dashed border-slate-700 px-3 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 transition hover:border-slate-500 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
+              className="btn-secondary mt-3 w-full text-xs"
+              title="Create channel"
             >
-              + Create Channel
+              <span>+</span>
+              <span className="hidden sm:inline">Create Channel</span>
             </button>
           ) : null}
         </div>

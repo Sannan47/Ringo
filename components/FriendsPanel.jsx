@@ -2,6 +2,14 @@
 
 import { useState } from "react";
 
+function EmptyState({ children }) {
+  return (
+    <p className="rounded-lg border border-dashed border-[var(--border)] px-4 py-6 text-center text-sm font-semibold text-[var(--faint)]">
+      {children}
+    </p>
+  );
+}
+
 export default function FriendsPanel({
   incoming,
   outgoing,
@@ -35,71 +43,73 @@ export default function FriendsPanel({
   };
 
   return (
-    <section className="flex-1 bg-slate-950 px-6 py-8 text-white">
-      <div className="mx-auto w-full max-w-5xl space-y-8">
-        <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
-            Friends
-          </p>
-          <h2 className="mt-2 text-3xl font-semibold">Manage connections</h2>
-          <p className="mt-2 text-sm text-slate-300">
-            Send requests, accept new friends, and start a direct chat.
-          </p>
+    <section className="h-[calc(100vh-65px)] flex-1 overflow-y-auto bg-[var(--page)] px-4 py-8 text-[var(--text)] sm:px-6">
+      <div className="mx-auto w-full max-w-6xl space-y-6">
+        <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
+          <div>
+            <div className="eyebrow">Friends</div>
+            <h2 className="mt-4 text-4xl font-black tracking-tight">
+              Manage connections
+            </h2>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--muted)]">
+              Send requests, accept new teammates, and open direct chats from a
+              single focused workspace view.
+            </p>
+          </div>
         </div>
 
-        <form
-          className="flex flex-wrap gap-3 rounded-2xl border border-slate-800 bg-slate-900/60 p-4"
-          onSubmit={handleSubmit}
-        >
+        <form className="ringo-panel flex flex-col gap-3 p-4 sm:flex-row" onSubmit={handleSubmit}>
           <input
             type="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             placeholder="friend@email.com"
-            className="flex-1 rounded-xl border border-slate-800 bg-slate-950/70 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-sky-500 focus:outline-none"
+            className="field flex-1"
           />
           <button
             type="submit"
             disabled={isSubmitting}
-            className="rounded-xl bg-sky-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-70"
+            className="btn-primary text-sm"
           >
             {isSubmitting ? "Sending..." : "Send Request"}
           </button>
-          {error ? <p className="w-full text-xs text-rose-300">{error}</p> : null}
+          {error ? (
+            <p className="w-full text-xs font-semibold text-rose-600">{error}</p>
+          ) : null}
         </form>
 
-        <div className="grid gap-6 lg:grid-cols-2">
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
-            <h3 className="text-sm font-semibold uppercase text-slate-400">
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className="ringo-panel p-5">
+            <h3 className="text-xs font-black uppercase tracking-[0.14em] text-[var(--faint)]">
               Incoming requests
             </h3>
-            <div className="mt-3 space-y-3">
-              {incoming.length === 0 ? (
-                <p className="text-xs text-slate-500">No incoming requests</p>
-              ) : null}
+            <div className="mt-4 space-y-3">
+              {incoming.length === 0 ? <EmptyState>No incoming requests</EmptyState> : null}
               {incoming.map((request) => (
                 <div
                   key={request.id}
-                  className="flex items-center justify-between rounded-xl border border-slate-800 px-4 py-3"
+                  className="flex flex-col gap-3 rounded-lg border border-[var(--border)] p-4 sm:flex-row sm:items-center sm:justify-between"
                 >
-                  <div>
-                    <p className="text-sm font-semibold text-white">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-black text-[var(--text)]">
                       {request.from?.name}
                     </p>
-                    <p className="text-xs text-slate-400">{request.from?.email}</p>
+                    <p className="truncate text-xs text-[var(--muted)]">
+                      {request.from?.email}
+                    </p>
                   </div>
                   <div className="flex gap-2">
                     <button
                       type="button"
                       onClick={() => onAccept(request.id)}
-                      className="rounded-full border border-emerald-500/40 px-3 py-1 text-xs font-semibold text-emerald-200 transition hover:border-emerald-400"
+                      className="rounded-full border border-emerald-400/40 px-3 py-2 text-xs font-black text-emerald-600 transition hover:bg-emerald-500/10"
                     >
                       Accept
                     </button>
                     <button
                       type="button"
                       onClick={() => onReject(request.id)}
-                      className="rounded-full border border-rose-500/40 px-3 py-1 text-xs font-semibold text-rose-200 transition hover:border-rose-400"
+                      className="rounded-full border border-rose-400/40 px-3 py-2 text-xs font-black text-rose-600 transition hover:bg-rose-500/10"
                     >
                       Reject
                     </button>
@@ -109,50 +119,52 @@ export default function FriendsPanel({
             </div>
           </div>
 
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
-            <h3 className="text-sm font-semibold uppercase text-slate-400">
+          <div className="ringo-panel p-5">
+            <h3 className="text-xs font-black uppercase tracking-[0.14em] text-[var(--faint)]">
               Outgoing requests
             </h3>
-            <div className="mt-3 space-y-3">
-              {outgoing.length === 0 ? (
-                <p className="text-xs text-slate-500">No outgoing requests</p>
-              ) : null}
+            <div className="mt-4 space-y-3">
+              {outgoing.length === 0 ? <EmptyState>No outgoing requests</EmptyState> : null}
               {outgoing.map((request) => (
                 <div
                   key={request.id}
-                  className="rounded-xl border border-slate-800 px-4 py-3"
+                  className="rounded-lg border border-[var(--border)] p-4"
                 >
-                  <p className="text-sm font-semibold text-white">
+                  <p className="truncate text-sm font-black text-[var(--text)]">
                     {request.to?.name}
                   </p>
-                  <p className="text-xs text-slate-400">{request.to?.email}</p>
+                  <p className="truncate text-xs text-[var(--muted)]">
+                    {request.to?.email}
+                  </p>
                 </div>
               ))}
             </div>
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
-          <h3 className="text-sm font-semibold uppercase text-slate-400">
+        <div className="ringo-panel p-5">
+          <h3 className="text-xs font-black uppercase tracking-[0.14em] text-[var(--faint)]">
             Friends
           </h3>
-          <div className="mt-3 space-y-3">
-            {friends.length === 0 ? (
-              <p className="text-xs text-slate-500">No friends yet</p>
-            ) : null}
+          <div className="mt-4 grid gap-3 lg:grid-cols-2">
+            {friends.length === 0 ? <EmptyState>No friends yet</EmptyState> : null}
             {friends.map((friend) => (
               <div
                 key={friend.id}
-                className="flex items-center justify-between rounded-xl border border-slate-800 px-4 py-3"
+                className="flex flex-col gap-3 rounded-lg border border-[var(--border)] p-4 sm:flex-row sm:items-center sm:justify-between"
               >
-                <div>
-                  <p className="text-sm font-semibold text-white">{friend.name}</p>
-                  <p className="text-xs text-slate-400">{friend.email}</p>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-black text-[var(--text)]">
+                    {friend.name}
+                  </p>
+                  <p className="truncate text-xs text-[var(--muted)]">
+                    {friend.email}
+                  </p>
                 </div>
                 <button
                   type="button"
                   onClick={() => onStartDm(friend)}
-                  className="rounded-full border border-slate-700 px-3 py-1 text-xs font-semibold text-slate-200 transition hover:border-slate-500"
+                  className="btn-secondary text-xs"
                 >
                   Message
                 </button>

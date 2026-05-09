@@ -1,47 +1,66 @@
 export default function ContactPage() {
   return (
-    <div className="min-h-screen bg-slate-950 px-6 py-16 text-white">
-      <div className="mx-auto w-full max-w-3xl">
-        <div className="mb-8">
-          <p className="text-xs uppercase tracking-[0.25em] text-slate-500">
-            Contact
+    <main className="ringo-page">
+      <section className="ringo-container grid gap-10 py-16 lg:grid-cols-[0.9fr_1.1fr] lg:py-20">
+        <div className="space-y-5 fade-in-up">
+          <div className="eyebrow">Contact</div>
+          <h1 className="text-4xl font-black tracking-tight text-[var(--text)] sm:text-5xl">
+            Tell us what your workspace needs next.
+          </h1>
+          <p className="max-w-xl text-lg leading-8 text-[var(--muted)]">
+            Questions, feedback, and product ideas are welcome. Send a note and
+            the Ringo team will follow up.
           </p>
-          <h1 className="mt-3 text-4xl font-semibold">Let us know how we can help.</h1>
-          <p className="mt-3 text-sm text-slate-300">
-            Send a message and we will follow up with you.
-          </p>
+          <div className="grid max-w-md gap-3 text-sm">
+            <div className="ringo-panel flex items-center gap-3 p-4">
+              <span className="status-pill">Email</span>
+              <a
+                href="mailto:hello@ringo.app"
+                className="font-semibold text-[var(--text)]"
+              >
+                hello@ringo.app
+              </a>
+            </div>
+            <div className="ringo-panel flex items-center gap-3 p-4">
+              <span className="status-pill">Support</span>
+              <span className="font-semibold text-[var(--text)]">
+                Weekdays, 9:00 to 18:00
+              </span>
+            </div>
+          </div>
         </div>
-        <form className="space-y-5 rounded-3xl border border-slate-800 bg-slate-900/60 p-6">
+
+        <form className="ringo-panel space-y-5 p-6 fade-in-up fade-in-up-delay-1">
           <div>
-            <label className="text-sm font-medium text-slate-200" htmlFor="email">
+            <label className="text-sm font-bold text-[var(--text)]" htmlFor="email">
               Email
             </label>
             <input
               id="email"
               type="email"
               placeholder="you@ringo.dev"
-              className="mt-2 w-full rounded-xl border border-slate-800 bg-slate-950/70 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-sky-500 focus:outline-none"
+              className="field mt-2"
             />
           </div>
           <div>
-            <label className="text-sm font-medium text-slate-200" htmlFor="message">
+            <label
+              className="text-sm font-bold text-[var(--text)]"
+              htmlFor="message"
+            >
               Message
             </label>
             <textarea
               id="message"
-              rows={5}
+              rows={6}
               placeholder="Share your question or feedback"
-              className="mt-2 w-full rounded-xl border border-slate-800 bg-slate-950/70 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-sky-500 focus:outline-none"
+              className="field mt-2 resize-none"
             />
           </div>
-          <button
-            type="submit"
-            className="rounded-full bg-sky-500 px-6 py-3 text-sm font-semibold text-white transition hover:bg-sky-400"
-          >
+          <button type="submit" className="btn-primary text-sm">
             Send message
           </button>
         </form>
-      </div>
-    </div>
+      </section>
+    </main>
   );
 }

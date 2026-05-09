@@ -76,44 +76,43 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_#e0f2fe,_#f1f5f9,_#ffffff)] px-4 py-12 font-sans text-slate-900">
-      <div className="mx-auto flex w-full max-w-5xl flex-col items-center gap-12 lg:flex-row-reverse">
-        <div className="w-full max-w-md space-y-4 fade-in-up">
-          <p className="inline-flex items-center rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-sky-700">
-            Welcome back
-          </p>
-          <h1 className="text-4xl font-semibold leading-tight">
-            Log in to keep conversations moving.
+    <main className="ringo-page">
+      <div className="ringo-container grid min-h-[calc(100vh-76px)] items-center gap-10 py-12 lg:grid-cols-[0.95fr_1.05fr]">
+        <div className="max-w-md space-y-5 fade-in-up lg:order-2">
+          <div className="eyebrow">Welcome back</div>
+          <h1 className="text-4xl font-black leading-tight tracking-tight text-[var(--text)]">
+            Log in and get straight back to the room.
           </h1>
-          <p className="text-base leading-relaxed text-slate-600">
+          <p className="text-base leading-7 text-[var(--muted)]">
             Your Ringo workspace is waiting. Sign in securely and jump straight
             into your team channels.
           </p>
-          <div className="rounded-2xl border border-sky-200/60 bg-white/70 p-4 text-sm text-sky-800 shadow-sm">
-            Use the email and password you registered during signup.
+          <div className="ringo-panel p-4 text-sm leading-6 text-[var(--text-soft)]">
+            Secure sessions use HTTP-only cookies, so the interface stays smooth
+            while access stays protected.
           </div>
         </div>
 
-        <div className="w-full max-w-md rounded-3xl bg-white/90 p-8 shadow-xl ring-1 ring-black/5 backdrop-blur fade-in-up fade-in-up-delay-1">
+        <div className="ringo-panel w-full max-w-md p-7 fade-in-up fade-in-up-delay-1">
           <div className="space-y-2">
-            <h2 className="text-2xl font-semibold">Log in</h2>
-            <p className="text-sm text-slate-500">
+            <h2 className="text-2xl font-black text-[var(--text)]">Log in</h2>
+            <p className="text-sm text-[var(--muted)]">
               New here?{" "}
-              <Link className="font-semibold text-sky-700" href="/signup">
+              <Link className="font-bold text-[var(--primary-strong)]" href="/signup">
                 Create an account
               </Link>
             </p>
           </div>
 
           {serverError && (
-            <div className="mt-6 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+            <div className="mt-6 rounded-lg border border-rose-400/40 bg-rose-500/10 px-4 py-3 text-sm text-rose-600">
               {serverError}
             </div>
           )}
 
           <form className="mt-6 space-y-5" onSubmit={handleSubmit}>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-700" htmlFor="email">
+              <label className="text-sm font-bold text-[var(--text)]" htmlFor="email">
                 Email address
               </label>
               <input
@@ -123,16 +122,16 @@ export default function LoginPage() {
                 value={formData.email}
                 onChange={handleChange}
                 placeholder="you@ringo.dev"
-                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-200"
+                className="field"
               />
               {errors.email && (
-                <p className="text-xs font-medium text-rose-600">{errors.email}</p>
+                <p className="text-xs font-semibold text-rose-600">{errors.email}</p>
               )}
             </div>
 
             <div className="space-y-2">
               <label
-                className="text-sm font-medium text-slate-700"
+                className="text-sm font-bold text-[var(--text)]"
                 htmlFor="password"
               >
                 Password
@@ -144,15 +143,18 @@ export default function LoginPage() {
                 value={formData.password}
                 onChange={handleChange}
                 placeholder="Your secure password"
-                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-200"
+                className="field"
               />
               {errors.password && (
-                <p className="text-xs font-medium text-rose-600">
+                <p className="text-xs font-semibold text-rose-600">
                   {errors.password}
                 </p>
               )}
               <div className="text-right text-xs">
-                <Link className="font-semibold text-sky-700" href="/forgot-password">
+                <Link
+                  className="font-bold text-[var(--primary-strong)]"
+                  href="/forgot-password"
+                >
                   Forgot password?
                 </Link>
               </div>
@@ -161,13 +163,13 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-sky-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-sky-200 transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-70"
+              className="btn-primary w-full text-sm"
             >
               {isSubmitting ? "Signing in..." : "Sign in"}
             </button>
           </form>
         </div>
       </div>
-    </div>
+    </main>
   );
 }

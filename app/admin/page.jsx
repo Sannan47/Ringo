@@ -117,17 +117,21 @@ export default function AdminPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 px-6 py-10 text-white">
-        <p className="text-sm text-slate-400">Loading admin dashboard...</p>
+      <div className="ringo-page px-6 py-10">
+        <p className="text-sm font-semibold text-[var(--muted)]">
+          Loading admin dashboard...
+        </p>
       </div>
     );
   }
 
   if (!loading && user && user.role !== "admin") {
     return (
-      <div className="min-h-screen bg-slate-950 px-6 py-10 text-white">
-        <h1 className="text-2xl font-semibold">403 - Access Denied</h1>
-        <p className="mt-2 text-sm text-slate-400">
+      <div className="ringo-page px-6 py-10">
+        <h1 className="text-2xl font-black text-[var(--text)]">
+          403 - Access Denied
+        </h1>
+        <p className="mt-2 text-sm text-[var(--muted)]">
           You do not have permission to view this page.
         </p>
       </div>
@@ -135,44 +139,49 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 px-6 py-10 text-white">
-      <div className="mx-auto w-full max-w-5xl">
+    <main className="ringo-page px-4 py-10">
+      <div className="mx-auto w-full max-w-6xl">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
-              Admin Dashboard
+            <div className="eyebrow">Admin Dashboard</div>
+            <h1 className="mt-4 text-4xl font-black tracking-tight text-[var(--text)]">
+              User Management
+            </h1>
+            <p className="mt-2 text-sm text-[var(--muted)]">
+              Review accounts, update roles, and keep workspace access tidy.
             </p>
-            <h1 className="text-3xl font-semibold">User Management</h1>
           </div>
           <LogoutButton />
         </div>
 
         {error ? (
-          <div className="rounded-2xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+          <div className="rounded-lg border border-rose-400/40 bg-rose-500/10 px-4 py-3 text-sm font-semibold text-rose-600">
             {error}
           </div>
         ) : null}
 
         {feedback ? (
-          <div className="mt-4 rounded-2xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+          <div className="mt-4 rounded-lg border border-emerald-400/40 bg-emerald-500/10 px-4 py-3 text-sm font-semibold text-emerald-600">
             {feedback}
           </div>
         ) : null}
 
         {isLoading && !error ? (
-          <p className="text-sm text-slate-400">Loading users...</p>
+          <p className="text-sm font-semibold text-[var(--muted)]">
+            Loading users...
+          </p>
         ) : null}
 
         {!isLoading && !error ? (
-          <div className="overflow-hidden rounded-2xl border border-slate-800">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-slate-900/70 text-slate-400">
+          <div className="table-surface overflow-x-auto">
+            <table className="w-full min-w-[760px] text-left text-sm">
+              <thead className="bg-[var(--surface-muted)] text-[var(--muted)]">
                 <tr>
-                  <th className="px-4 py-3 font-medium">Name</th>
-                  <th className="px-4 py-3 font-medium">Email</th>
-                  <th className="px-4 py-3 font-medium">Role</th>
-                  <th className="px-4 py-3 font-medium">Status</th>
-                  <th className="px-4 py-3 font-medium">Actions</th>
+                  <th className="px-4 py-3 font-black">Name</th>
+                  <th className="px-4 py-3 font-black">Email</th>
+                  <th className="px-4 py-3 font-black">Role</th>
+                  <th className="px-4 py-3 font-black">Status</th>
+                  <th className="px-4 py-3 font-black">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -180,32 +189,32 @@ export default function AdminPage() {
                   const isSelf = user && entry.id === user.userId;
 
                   return (
-                    <tr key={entry.id} className="border-t border-slate-800">
-                    <td className="px-4 py-3 text-white">{entry.name}</td>
-                    <td className="px-4 py-3 text-slate-300">{entry.email}</td>
-                    <td className="px-4 py-3 text-slate-300">
+                    <tr key={entry.id} className="border-t border-[var(--border)]">
+                    <td className="px-4 py-3 font-bold text-[var(--text)]">{entry.name}</td>
+                    <td className="px-4 py-3 text-[var(--muted)]">{entry.email}</td>
+                    <td className="px-4 py-3 text-[var(--muted)]">
                       <span
-                        className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide ${
+                        className={`rounded-full px-3 py-1 text-xs font-black uppercase tracking-wide ${
                           entry.role === "admin"
-                            ? "bg-amber-500/20 text-amber-200"
-                            : "bg-slate-800 text-slate-300"
+                            ? "bg-purple-500/15 text-[var(--primary-strong)]"
+                            : "bg-[var(--surface-muted)] text-[var(--muted)]"
                         }`}
                       >
                         {entry.role}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-slate-300">
+                    <td className="px-4 py-3 text-[var(--muted)]">
                       <span
-                        className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                        className={`rounded-full px-3 py-1 text-xs font-black ${
                           entry.isActive
-                            ? "bg-emerald-500/20 text-emerald-200"
-                            : "bg-rose-500/20 text-rose-200"
+                            ? "bg-emerald-500/15 text-emerald-600"
+                            : "bg-rose-500/15 text-rose-600"
                         }`}
                       >
                         {entry.isActive ? "Active" : "Disabled"}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-slate-300">
+                    <td className="px-4 py-3 text-[var(--muted)]">
                       <div className="flex flex-wrap gap-2">
                         <button
                           type="button"
@@ -213,7 +222,7 @@ export default function AdminPage() {
                             isSelf || updatingId === entry.id || entry.role === "admin"
                           }
                           onClick={() => handleRoleChange(entry, "admin")}
-                          className="rounded-full border border-slate-700 px-3 py-1 text-xs font-semibold text-slate-200 transition hover:border-amber-400 hover:text-amber-200 disabled:cursor-not-allowed disabled:opacity-50"
+                          className="btn-secondary min-h-0 px-3 py-2 text-xs disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           Make Admin
                         </button>
@@ -223,7 +232,7 @@ export default function AdminPage() {
                             isSelf || updatingId === entry.id || entry.role === "user"
                           }
                           onClick={() => handleRoleChange(entry, "user")}
-                          className="rounded-full border border-slate-700 px-3 py-1 text-xs font-semibold text-slate-200 transition hover:border-sky-400 hover:text-sky-200 disabled:cursor-not-allowed disabled:opacity-50"
+                          className="btn-secondary min-h-0 px-3 py-2 text-xs disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           Make User
                         </button>
@@ -232,7 +241,7 @@ export default function AdminPage() {
                             type="button"
                             disabled={isSelf || updatingId === entry.id}
                             onClick={() => handleStatusChange(entry, false)}
-                            className="rounded-full border border-rose-500/40 px-3 py-1 text-xs font-semibold text-rose-200 transition hover:border-rose-400 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="rounded-full border border-rose-400/40 px-3 py-2 text-xs font-black text-rose-600 transition hover:bg-rose-500/10 disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             Disable User
                           </button>
@@ -241,7 +250,7 @@ export default function AdminPage() {
                             type="button"
                             disabled={isSelf || updatingId === entry.id}
                             onClick={() => handleStatusChange(entry, true)}
-                            className="rounded-full border border-emerald-500/40 px-3 py-1 text-xs font-semibold text-emerald-200 transition hover:border-emerald-400 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="rounded-full border border-emerald-400/40 px-3 py-2 text-xs font-black text-emerald-600 transition hover:bg-emerald-500/10 disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             Activate User
                           </button>
@@ -256,6 +265,6 @@ export default function AdminPage() {
           </div>
         ) : null}
       </div>
-    </div>
+    </main>
   );
 }

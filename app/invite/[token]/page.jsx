@@ -38,11 +38,15 @@ export default function InvitePage() {
   }, [router, token]);
 
   return (
-    <div className="min-h-screen bg-slate-950 px-6 py-16 text-white">
-      <div className="mx-auto w-full max-w-lg rounded-3xl border border-slate-800 bg-slate-900/60 p-6">
-        <h1 className="text-2xl font-semibold">Server Invite</h1>
-        <p className="mt-3 text-sm text-slate-300">{status}</p>
+    <main className="ringo-page flex min-h-screen items-center px-4 py-16">
+      <div className="ringo-panel mx-auto w-full max-w-lg p-6">
+        <div className="brand-mark mb-5">R</div>
+        <div className="eyebrow">Workspace invite</div>
+        <h1 className="mt-4 text-3xl font-black text-[var(--text)]">
+          Server invite
+        </h1>
+        <p className="mt-3 text-sm leading-6 text-[var(--muted)]">{status}</p>
       </div>
-    </div>
+    </main>
   );
 }

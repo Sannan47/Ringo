@@ -22,10 +22,11 @@ export default function useSocket(isEnabled = true) {
       socketInstance.connect();
     }
 
-    setSocket(socketInstance);
+    const activeSocket = socketInstance;
+    queueMicrotask(() => setSocket(activeSocket));
 
     return () => {
-      socketInstance?.disconnect();
+      activeSocket?.disconnect();
     };
   }, [isEnabled]);
 

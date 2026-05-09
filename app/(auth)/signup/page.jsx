@@ -87,51 +87,49 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_#fef3c7,_#ecfccb,_#ffffff)] px-4 py-12 font-sans text-slate-900">
-      <div className="mx-auto flex w-full max-w-5xl flex-col items-center gap-12 lg:flex-row">
-        <div className="w-full max-w-md space-y-4 fade-in-up">
-          <p className="inline-flex items-center rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-amber-700">
-            Phase 2 Authentication
-          </p>
-          <h1 className="text-4xl font-semibold leading-tight">
-            Create your Ringo workspace access.
+    <main className="ringo-page">
+      <div className="ringo-container grid min-h-[calc(100vh-76px)] items-center gap-10 py-12 lg:grid-cols-[0.95fr_1.05fr]">
+        <div className="max-w-md space-y-5 fade-in-up">
+          <div className="eyebrow">Create workspace access</div>
+          <h1 className="text-4xl font-black leading-tight tracking-tight text-[var(--text)]">
+            Start a polished team space in minutes.
           </h1>
-          <p className="text-base leading-relaxed text-slate-600">
+          <p className="text-base leading-7 text-[var(--muted)]">
             Set up your account to join your team, manage channels, and keep your
             collaboration secure.
           </p>
-          <div className="rounded-2xl border border-amber-200/60 bg-white/70 p-4 text-sm text-amber-800 shadow-sm">
-            Use a strong password and double-check your email to keep your
-            account safe.
+          <div className="ringo-panel p-4 text-sm leading-6 text-[var(--text-soft)]">
+            Ringo keeps onboarding simple: create an account, join a server, and
+            start the conversation without setup clutter.
           </div>
         </div>
 
-        <div className="w-full max-w-md rounded-3xl bg-white/90 p-8 shadow-xl ring-1 ring-black/5 backdrop-blur fade-in-up fade-in-up-delay-1">
+        <div className="ringo-panel w-full max-w-md p-7 fade-in-up fade-in-up-delay-1">
           <div className="space-y-2">
-            <h2 className="text-2xl font-semibold">Sign up</h2>
-            <p className="text-sm text-slate-500">
+            <h2 className="text-2xl font-black text-[var(--text)]">Sign up</h2>
+            <p className="text-sm text-[var(--muted)]">
               Already have an account?{" "}
-              <Link className="font-semibold text-amber-700" href="/login">
+              <Link className="font-bold text-[var(--primary-strong)]" href="/login">
                 Log in
               </Link>
             </p>
           </div>
 
           {serverError && (
-            <div className="mt-6 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+            <div className="mt-6 rounded-lg border border-rose-400/40 bg-rose-500/10 px-4 py-3 text-sm text-rose-600">
               {serverError}
             </div>
           )}
 
           {successMessage && (
-            <div className="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+            <div className="mt-6 rounded-lg border border-emerald-400/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-600">
               {successMessage}
             </div>
           )}
 
           <form className="mt-6 space-y-5" onSubmit={handleSubmit}>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-700" htmlFor="name">
+              <label className="text-sm font-bold text-[var(--text)]" htmlFor="name">
                 Full name
               </label>
               <input
@@ -140,15 +138,15 @@ export default function SignupPage() {
                 value={formData.name}
                 onChange={handleChange}
                 placeholder="Jane Appleseed"
-                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
+                className="field"
               />
               {errors.name && (
-                <p className="text-xs font-medium text-rose-600">{errors.name}</p>
+                <p className="text-xs font-semibold text-rose-600">{errors.name}</p>
               )}
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-700" htmlFor="email">
+              <label className="text-sm font-bold text-[var(--text)]" htmlFor="email">
                 Email address
               </label>
               <input
@@ -158,16 +156,16 @@ export default function SignupPage() {
                 value={formData.email}
                 onChange={handleChange}
                 placeholder="you@ringo.dev"
-                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
+                className="field"
               />
               {errors.email && (
-                <p className="text-xs font-medium text-rose-600">{errors.email}</p>
+                <p className="text-xs font-semibold text-rose-600">{errors.email}</p>
               )}
             </div>
 
             <div className="space-y-2">
               <label
-                className="text-sm font-medium text-slate-700"
+                className="text-sm font-bold text-[var(--text)]"
                 htmlFor="password"
               >
                 Password
@@ -179,10 +177,10 @@ export default function SignupPage() {
                 value={formData.password}
                 onChange={handleChange}
                 placeholder="At least 6 characters"
-                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
+                className="field"
               />
               {errors.password && (
-                <p className="text-xs font-medium text-rose-600">
+                <p className="text-xs font-semibold text-rose-600">
                   {errors.password}
                 </p>
               )}
@@ -191,13 +189,13 @@ export default function SignupPage() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-amber-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-amber-200 transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-70"
+              className="btn-primary w-full text-sm"
             >
               {isSubmitting ? "Creating account..." : "Create account"}
             </button>
           </form>
         </div>
       </div>
-    </div>
+    </main>
   );
 }

@@ -56,36 +56,36 @@ export default function ResetPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 px-6 py-16 text-white">
+    <main className="ringo-page px-4 py-16">
       <div className="mx-auto w-full max-w-lg">
         <div className="mb-8">
-          <p className="text-xs uppercase tracking-[0.25em] text-slate-500">
-            Reset password
-          </p>
-          <h1 className="mt-3 text-3xl font-semibold">Set a new password</h1>
-          <p className="mt-3 text-sm text-slate-300">
+          <div className="eyebrow">Reset password</div>
+          <h1 className="mt-4 text-3xl font-black text-[var(--text)]">
+            Set a new password
+          </h1>
+          <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
             Choose a strong password to secure your account.
           </p>
         </div>
 
         {error ? (
-          <div className="mb-4 rounded-2xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+          <div className="mb-4 rounded-lg border border-rose-400/40 bg-rose-500/10 px-4 py-3 text-sm text-rose-600">
             {error}
           </div>
         ) : null}
 
         {message ? (
-          <div className="mb-4 rounded-2xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+          <div className="mb-4 rounded-lg border border-emerald-400/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-600">
             {message}
           </div>
         ) : null}
 
         <form
-          className="space-y-5 rounded-3xl border border-slate-800 bg-slate-900/60 p-6"
+          className="ringo-panel space-y-5 p-6"
           onSubmit={handleSubmit}
         >
           <div>
-            <label className="text-sm font-medium text-slate-200" htmlFor="password">
+            <label className="text-sm font-bold text-[var(--text)]" htmlFor="password">
               New password
             </label>
             <input
@@ -93,12 +93,12 @@ export default function ResetPasswordPage() {
               type="password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              className="mt-2 w-full rounded-xl border border-slate-800 bg-slate-950/70 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-sky-500 focus:outline-none"
+              className="field mt-2"
             />
           </div>
           <div>
             <label
-              className="text-sm font-medium text-slate-200"
+              className="text-sm font-bold text-[var(--text)]"
               htmlFor="confirmPassword"
             >
               Confirm password
@@ -108,18 +108,18 @@ export default function ResetPasswordPage() {
               type="password"
               value={confirmPassword}
               onChange={(event) => setConfirmPassword(event.target.value)}
-              className="mt-2 w-full rounded-xl border border-slate-800 bg-slate-950/70 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-sky-500 focus:outline-none"
+              className="field mt-2"
             />
           </div>
           <button
             type="submit"
             disabled={isSubmitting}
-            className="rounded-full bg-sky-500 px-6 py-3 text-sm font-semibold text-white transition hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-70"
+            className="btn-primary text-sm"
           >
             {isSubmitting ? "Updating..." : "Reset password"}
           </button>
         </form>
       </div>
-    </div>
+    </main>
   );
 }

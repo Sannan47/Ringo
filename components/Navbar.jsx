@@ -4,6 +4,38 @@ import { useState } from "react";
 import Link from "next/link";
 import { useAuth } from "../context/AuthContext";
 import LogoutButton from "./auth/LogoutButton";
+import ThemeToggle from "./ThemeToggle";
+
+function MenuIcon({ open }) {
+  return open ? (
+    <svg
+      aria-hidden="true"
+      className="h-5 w-5"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+    >
+      <path d="M18 6 6 18" />
+      <path d="m6 6 12 12" />
+    </svg>
+  ) : (
+    <svg
+      aria-hidden="true"
+      className="h-5 w-5"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+    >
+      <path d="M4 7h16" />
+      <path d="M4 12h16" />
+      <path d="M4 17h16" />
+    </svg>
+  );
+}
 
 export default function Navbar() {
   const { user, loading } = useAuth();
@@ -16,28 +48,30 @@ export default function Navbar() {
   ];
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-slate-800 bg-slate-950/80 backdrop-blur">
-      <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-4">
-        <Link href="/" className="text-lg font-semibold tracking-tight text-white">
-          Ringo
+    <header className="sticky top-0 z-40 w-full border-b border-[var(--border)] bg-[var(--surface)] backdrop-blur-xl">
+      <div className="ringo-container flex items-center justify-between py-4">
+        <Link
+          href="/"
+          className="flex items-center gap-3 text-lg font-bold tracking-tight text-[var(--text)]"
+        >
+          <span className="brand-mark">R</span>
+          <span>Ringo</span>
         </Link>
-        <nav className="hidden items-center gap-6 text-sm text-slate-300 md:flex">
+
+        <nav className="hidden items-center gap-1 md:flex">
           {links.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="transition hover:text-white"
-            >
+            <Link key={link.href} href={link.href} className="nav-link">
               {link.label}
             </Link>
           ))}
+
           {!loading && user ? (
             <>
-              <Link href="/dashboard" className="transition hover:text-white">
+              <Link href="/dashboard" className="nav-link">
                 Dashboard
               </Link>
               {user.role === "admin" ? (
-                <Link href="/admin" className="transition hover:text-white">
+                <Link href="/admin" className="nav-link">
                   Admin
                 </Link>
               ) : null}
@@ -45,45 +79,46 @@ export default function Navbar() {
             </>
           ) : (
             <>
-              <Link href="/login" className="transition hover:text-white">
+              <Link href="/login" className="nav-link">
                 Login
               </Link>
-              <Link
-                href="/signup"
-                className="rounded-full border border-slate-700 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-200 transition hover:border-slate-500"
-              >
+              <Link href="/signup" className="btn-primary text-sm">
                 Sign Up
               </Link>
             </>
           )}
+          <ThemeToggle />
         </nav>
-        <button
-          type="button"
-          onClick={() => setIsOpen((prev) => !prev)}
-          className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-800 text-slate-200 transition hover:border-slate-500 md:hidden"
-        >
-          <span className="text-lg">{isOpen ? "✕" : "☰"}</span>
-        </button>
+
+        <div className="flex items-center gap-2 md:hidden">
+          <ThemeToggle />
+          <button
+            type="button"
+            onClick={() => setIsOpen((prev) => !prev)}
+            className="icon-button"
+            aria-label="Toggle navigation"
+          >
+            <MenuIcon open={isOpen} />
+          </button>
+        </div>
       </div>
+
       {isOpen ? (
-        <div className="border-t border-slate-800 bg-slate-950 px-6 py-4 md:hidden">
-          <div className="flex flex-col gap-3 text-sm text-slate-300">
+        <div className="border-t border-[var(--border)] bg-[var(--surface-solid)] px-4 py-4 md:hidden">
+          <div className="flex flex-col gap-2 text-sm">
             {links.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="transition hover:text-white"
-              >
+              <Link key={link.href} href={link.href} className="nav-link">
                 {link.label}
               </Link>
             ))}
+
             {!loading && user ? (
               <>
-                <Link href="/dashboard" className="transition hover:text-white">
+                <Link href="/dashboard" className="nav-link">
                   Dashboard
                 </Link>
                 {user.role === "admin" ? (
-                  <Link href="/admin" className="transition hover:text-white">
+                  <Link href="/admin" className="nav-link">
                     Admin
                   </Link>
                 ) : null}
@@ -91,10 +126,10 @@ export default function Navbar() {
               </>
             ) : (
               <>
-                <Link href="/login" className="transition hover:text-white">
+                <Link href="/login" className="nav-link">
                   Login
                 </Link>
-                <Link href="/signup" className="transition hover:text-white">
+                <Link href="/signup" className="btn-primary text-sm">
                   Sign Up
                 </Link>
               </>
