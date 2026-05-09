@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import { NextResponse } from "next/server";
 import connectDb from "../../../../lib/db";
+import DirectMessage from "../../../../models/DirectMessage";
 import DirectThread from "../../../../models/DirectThread";
 import Friendship from "../../../../models/Friendship";
 import { requireAuth } from "../../../../lib/permissions";
@@ -19,7 +20,30 @@ export async function GET(request) {
       .populate("participants", "name email")
       .lean();
 
-    const formatted = threads.map((thread) => {
+    const threadIds = threads.map((thread) => thread._id);
+    const latestMessages = await DirectMessage.find({
+      threadId: { $in: threadIds },
+    })
+      .sort({ createdAt: -1 })
+      .lean();
+    const latestByThreadId = new Map();
+
+    latestMessages.forEach((message) => {
+      const threadId = message.threadId.toString();
+
+      if (!latestByThreadId.has(threadId)) {
+        latestByThreadId.set(threadId, message);
+      }
+    });
+
+    const formatted = threads
+      .filter((thread) => latestByThreadId.has(thread._id.toString()))
+      .sort((a, b) => {
+        const aLatest = latestByThreadId.get(a._id.toString())?.createdAt;
+        const bLatest = latestByThreadId.get(b._id.toString())?.createdAt;
+        return new Date(bLatest || 0) - new Date(aLatest || 0);
+      })
+      .map((thread) => {
       const partner = thread.participants.find(
         (participant) => participant._id.toString() !== user.userId
       );

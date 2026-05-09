@@ -2,33 +2,33 @@
 
 :root {
   color-scheme: light;
-  --background: #f4f7fb;
-  --foreground: #111827;
-  --page: #f4f7fb;
+  --background: #f7f5ff;
+  --foreground: #15121f;
+  --page: #f7f5ff;
   --page-muted: #ffffff;
-  --surface: rgba(255, 255, 255, 0.84);
+  --surface: rgba(255, 255, 255, 0.86);
   --surface-solid: #ffffff;
-  --surface-muted: #eef2f8;
-  --surface-hover: #f7f9fd;
-  --border: rgba(38, 55, 82, 0.12);
-  --border-strong: rgba(50, 70, 110, 0.24);
-  --text: #121826;
-  --text-soft: #334155;
-  --muted: #64748b;
-  --faint: #94a3b8;
-  --primary: #4f63f6;
-  --primary-strong: #3347d8;
-  --primary-soft: #e8edff;
-  --primary-faint: rgba(79, 99, 246, 0.1);
-  --accent: #0f9f8f;
-  --accent-soft: rgba(15, 159, 143, 0.12);
-  --accent-warm: #d97706;
-  --success: #059669;
+  --surface-muted: #f0ecff;
+  --surface-hover: #f6f2ff;
+  --border: rgba(91, 69, 139, 0.16);
+  --border-strong: rgba(103, 72, 171, 0.28);
+  --text: #15121f;
+  --text-soft: #3b344a;
+  --muted: #706a7f;
+  --faint: #948da5;
+  --primary: #7c3aed;
+  --primary-strong: #5b21b6;
+  --primary-soft: #ede9fe;
+  --primary-faint: #f5f1ff;
+  --accent: #7c3aed;
+  --accent-soft: rgba(124, 58, 237, 0.14);
+  --accent-warm: #a16207;
+  --success: #10b981;
   --warning: #b7791f;
   --danger: #e11d48;
-  --shadow-sm: 0 14px 36px rgba(15, 23, 42, 0.08);
-  --shadow-md: 0 24px 70px rgba(15, 23, 42, 0.14);
-  --ring: 0 0 0 4px rgba(79, 99, 246, 0.16);
+  --shadow-sm: 0 10px 30px rgba(49, 24, 95, 0.08);
+  --shadow-md: 0 18px 55px rgba(49, 24, 95, 0.12);
+  --ring: 0 0 0 4px rgba(124, 58, 237, 0.16);
   --font-geist-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-geist-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
 }
@@ -43,27 +43,27 @@
 @media (prefers-color-scheme: dark) {
   :root:not(.light) {
     color-scheme: dark;
-    --background: #0f1722;
-    --foreground: #f8fafc;
-    --page: #0f1722;
-    --page-muted: #111c2b;
-    --surface: rgba(17, 28, 43, 0.8);
-    --surface-solid: #111c2b;
-    --surface-muted: #172337;
-    --surface-hover: #1d2b42;
-    --border: rgba(226, 232, 240, 0.12);
-    --border-strong: rgba(226, 232, 240, 0.24);
-    --text: #f8fafc;
-    --text-soft: #dbeafe;
-    --muted: #b6c2d2;
-    --faint: #8492a6;
-    --primary: #8ea0ff;
-    --primary-strong: #a9b6ff;
-    --primary-soft: rgba(79, 99, 246, 0.22);
-    --primary-faint: rgba(79, 99, 246, 0.12);
-    --accent: #5eead4;
-    --accent-soft: rgba(94, 234, 212, 0.14);
-    --accent-warm: #fbbf24;
+    --background: #11101a;
+    --foreground: #f7f4ff;
+    --page: #11101a;
+    --page-muted: #161424;
+    --surface: rgba(28, 25, 43, 0.82);
+    --surface-solid: #1b1829;
+    --surface-muted: #242038;
+    --surface-hover: #2b2542;
+    --border: rgba(205, 194, 255, 0.12);
+    --border-strong: rgba(205, 194, 255, 0.22);
+    --text: #f7f4ff;
+    --text-soft: #eee9f8;
+    --muted: #c4bdd3;
+    --faint: #a79db9;
+    --primary: #a78bfa;
+    --primary-strong: #8b5cf6;
+    --primary-soft: rgba(124, 58, 237, 0.22);
+    --primary-faint: rgba(124, 58, 237, 0.12);
+    --accent: #a78bfa;
+    --accent-soft: rgba(167, 139, 250, 0.16);
+    --accent-warm: #f59e0b;
     --success: #34d399;
     --warning: #f59e0b;
     --danger: #fb7185;
@@ -75,27 +75,27 @@
 
 :root.dark {
   color-scheme: dark;
-  --background: #0f1722;
-  --foreground: #f8fafc;
-  --page: #0f1722;
-  --page-muted: #111c2b;
-  --surface: rgba(17, 28, 43, 0.8);
-  --surface-solid: #111c2b;
-  --surface-muted: #172337;
-  --surface-hover: #1d2b42;
-  --border: rgba(226, 232, 240, 0.12);
-  --border-strong: rgba(226, 232, 240, 0.24);
-  --text: #f8fafc;
-  --text-soft: #dbeafe;
-  --muted: #b6c2d2;
-  --faint: #8492a6;
-  --primary: #8ea0ff;
-  --primary-strong: #a9b6ff;
-  --primary-soft: rgba(79, 99, 246, 0.22);
-  --primary-faint: rgba(79, 99, 246, 0.12);
-  --accent: #5eead4;
-  --accent-soft: rgba(94, 234, 212, 0.14);
-  --accent-warm: #fbbf24;
+  --background: #11101a;
+  --foreground: #f7f4ff;
+  --page: #11101a;
+  --page-muted: #161424;
+  --surface: rgba(28, 25, 43, 0.82);
+  --surface-solid: #1b1829;
+  --surface-muted: #242038;
+  --surface-hover: #2b2542;
+  --border: rgba(205, 194, 255, 0.12);
+  --border-strong: rgba(205, 194, 255, 0.22);
+  --text: #f7f4ff;
+  --text-soft: #eee9f8;
+  --muted: #c4bdd3;
+  --faint: #a79db9;
+  --primary: #a78bfa;
+  --primary-strong: #8b5cf6;
+  --primary-soft: rgba(124, 58, 237, 0.22);
+  --primary-faint: rgba(124, 58, 237, 0.12);
+  --accent: #a78bfa;
+  --accent-soft: rgba(167, 139, 250, 0.16);
+  --accent-warm: #f59e0b;
   --success: #34d399;
   --warning: #f59e0b;
   --danger: #fb7185;
@@ -191,8 +191,8 @@ button {
   .ringo-page {
     min-height: 100vh;
     background:
-      linear-gradient(135deg, rgba(79, 99, 246, 0.08) 0%, transparent 36%),
-      linear-gradient(225deg, rgba(15, 159, 143, 0.1) 0%, transparent 32%),
+      linear-gradient(135deg, rgba(124, 58, 237, 0.12) 0%, transparent 36%),
+      linear-gradient(225deg, rgba(91, 33, 182, 0.1) 0%, transparent 32%),
       linear-gradient(145deg, var(--page) 0%, var(--page-muted) 52%, var(--surface-muted) 100%);
     color: var(--text);
   }
@@ -267,12 +267,12 @@ button {
     align-items: center;
     justify-content: center;
     border-radius: 0.875rem;
-    background: linear-gradient(135deg, var(--primary), var(--accent));
+    background: linear-gradient(135deg, var(--primary), var(--primary-strong));
     background-size: 180% 180%;
     color: white;
     font-weight: 800;
     letter-spacing: 0;
-    box-shadow: 0 12px 28px rgba(79, 99, 246, 0.22);
+    box-shadow: 0 12px 28px rgba(124, 58, 237, 0.26);
     animation: subtle-sheen 7s ease-in-out infinite alternate;
   }
 
@@ -325,12 +325,12 @@ button {
     background: linear-gradient(135deg, var(--primary), var(--primary-strong));
     padding: 0.85rem 1.15rem;
     color: white;
-    box-shadow: 0 14px 30px rgba(79, 99, 246, 0.22);
+    box-shadow: 0 14px 30px rgba(124, 58, 237, 0.22);
   }
 
   .btn-primary:hover {
     transform: translateY(-1px);
-    box-shadow: 0 18px 36px rgba(79, 99, 246, 0.28);
+    box-shadow: 0 18px 36px rgba(124, 58, 237, 0.28);
   }
 
   .btn-secondary {

@@ -60,6 +60,18 @@ export async function PATCH(request, { params }) {
       await requestDoc.save();
     }
 
+    const participants = usersPair.map((entry) => entry.toString());
+    participants.forEach((participantId) => {
+      globalThis.ringoRealtime?.emitToUser?.(
+        participantId,
+        "friend_request_updated",
+        {
+          status: "accepted",
+          friendId: participants.find((entry) => entry !== participantId),
+        }
+      );
+    });
+
     return NextResponse.json(
       {
         friend: {

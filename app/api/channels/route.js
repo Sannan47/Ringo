@@ -30,6 +30,7 @@ export async function GET(request) {
     const formatted = channels.map((channel) => ({
       id: channel._id.toString(),
       name: channel.name,
+      type: channel.type || "text",
       serverId: channel.serverId.toString(),
     }));
 
@@ -49,6 +50,7 @@ export async function POST(request) {
   try {
     const body = await request.json();
     const name = String(body?.name || "").trim();
+    const type = ["text", "voice"].includes(body?.type) ? body.type : "text";
     const serverId = String(body?.serverId || "").trim();
 
     if (!name || !serverId) {
@@ -64,13 +66,14 @@ export async function POST(request) {
       return ownership.response;
     }
 
-    const channel = await Channel.create({ name, serverId });
+    const channel = await Channel.create({ name, type, serverId });
 
     return NextResponse.json(
       {
         channel: {
           id: channel._id.toString(),
           name: channel.name,
+          type: channel.type,
           serverId: channel.serverId.toString(),
         },
       },

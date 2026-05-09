@@ -7,8 +7,10 @@ import Channel from "./models/Channel.js";
 import Message from "./models/Message.js";
 import DirectMessage from "./models/DirectMessage.js";
 import DirectThread from "./models/DirectThread.js";
+import Server from "./models/Server.js";
 import User from "./models/User.js";
 import { verifyToken } from "./lib/auth.js";
+import { registerVoiceHandlers } from "./socket/index.js";
 
 const { loadEnvConfig } = nextEnv;
 loadEnvConfig(process.cwd());
@@ -96,6 +98,18 @@ const removeConnectedUser = (userId, socketId) => {
   }
 };
 
+const emitToUser = (userId, eventName, payload) => {
+  if (!userId || !eventName) {
+    return;
+  }
+
+  io.to(`user:${String(userId)}`).emit(eventName, payload);
+};
+
+globalThis.ringoRealtime = {
+  emitToUser,
+};
+
 const emitFriendsPresence = (socket) => {
   const watchedIds = [...(socket.friendWatchIds || [])];
   const onlineUserIds = watchedIds.filter((userId) =>
@@ -116,7 +130,9 @@ const emitPresenceToWatchers = (userId) => {
 io.on("connection", (socket) => {
   console.log(`socket connected: ${socket.id} (${socket.user?.email || ""})`);
   addConnectedUser(socket.user?.userId, socket.id);
+  socket.join(`user:${socket.user.userId}`);
   emitPresenceToWatchers(socket.user?.userId);
+  registerVoiceHandlers(io, socket);
 
   socket.on("watch_friends", ({ friendIds }) => {
     socket.friendWatchIds = new Set(
@@ -177,9 +193,9 @@ io.on("connection", (socket) => {
     try {
       await connectDb();
 
-      const channelExists = await Channel.exists({ _id: channelId });
+      const channel = await Channel.findById(channelId).lean();
 
-      if (!channelExists) {
+      if (!channel) {
         return;
       }
 
@@ -193,12 +209,38 @@ io.on("connection", (socket) => {
         id: message._id.toString(),
         content: message.content,
         channelId,
+        serverId: channel.serverId.toString(),
         createdAt: message.createdAt,
         sender: {
           id: socket.user.userId,
           name: socket.user.name,
         },
       });
+
+      const server = await Server.findById(channel.serverId)
+        .select("members")
+        .lean();
+
+      const payload = {
+        serverId: channel.serverId.toString(),
+        channelId,
+        message: {
+          id: message._id.toString(),
+          content: message.content,
+          channelId,
+          serverId: channel.serverId.toString(),
+          createdAt: message.createdAt,
+          sender: {
+            id: socket.user.userId,
+            name: socket.user.name,
+          },
+        },
+      };
+
+      (server?.members || [])
+        .map((memberId) => memberId.toString())
+        .filter((memberId) => memberId !== socket.user.userId)
+        .forEach((memberId) => emitToUser(memberId, "server_activity", payload));
     } catch (error) {
       console.error("socket message error", error);
     }
@@ -254,6 +296,42 @@ io.on("connection", (socket) => {
           id: socket.user.userId,
           name: socket.user.name,
         },
+      });
+
+      const participantIds = thread.participants.map((entry) => entry.toString());
+      const participants = await User.find({ _id: { $in: participantIds } })
+        .select("name email")
+        .lean();
+      const usersById = new Map(
+        participants.map((participant) => [participant._id.toString(), participant])
+      );
+
+      participantIds.forEach((participantId) => {
+        const partnerId = participantIds.find((id) => id !== participantId);
+        const partner = usersById.get(partnerId);
+
+        emitToUser(participantId, "dm_activity", {
+          thread: {
+            id: threadId,
+            participant: partner
+              ? {
+                  id: partner._id.toString(),
+                  name: partner.name,
+                  email: partner.email,
+                }
+              : null,
+          },
+          message: {
+            id: message._id.toString(),
+            content: message.content,
+            threadId,
+            createdAt: message.createdAt,
+            sender: {
+              id: socket.user.userId,
+              name: socket.user.name,
+            },
+          },
+        });
       });
     } catch (error) {
       console.error("socket dm error", error);

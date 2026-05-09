@@ -172,15 +172,103 @@ function SettingsPopover() {
   );
 }
 
+function MessagesIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-4 w-4"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4Z" />
+    </svg>
+  );
+}
+
+function ServerIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-4 w-4"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="3" y="4" width="18" height="6" rx="2" />
+      <rect x="3" y="14" width="18" height="6" rx="2" />
+      <path d="M7 7h.01" />
+      <path d="M7 17h.01" />
+    </svg>
+  );
+}
+
+function VoiceIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-4 w-4"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M11 5 6 9H2v6h4l5 4V5Z" />
+      <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+      <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+    </svg>
+  );
+}
+
+function PlusIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-4 w-4"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M12 5v14" />
+      <path d="M5 12h14" />
+    </svg>
+  );
+}
+
+function UnreadDot({ show }) {
+  return show ? (
+    <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-rose-500 ring-2 ring-[var(--surface-solid)]" />
+  ) : null;
+}
+
 export default function Sidebar({
   servers,
   dmThreads,
-  channels,
+  textChannels,
+  voiceChannels,
+  activeTab,
+  onTabChange,
+  unreadDmThreadIds,
+  unreadServerIds,
+  unreadChannelIds,
+  activeVoiceChannelId,
   selectedServerId,
   selectedChannelId,
   selectedThreadId,
   onSelectServer,
   onSelectChannel,
+  onSelectVoiceChannel,
   onSelectThread,
   onCreateServer,
   onCreateChannel,
@@ -190,149 +278,250 @@ export default function Sidebar({
   isLoadingChannels,
   canManageServer,
 }) {
+  const selectedServer = servers.find((server) => server.id === selectedServerId);
+  const hasDmUnread = unreadDmThreadIds.size > 0;
+  const hasServerUnread = unreadServerIds.size > 0;
+
   return (
-    <aside className="dashboard-sidebar flex h-[calc(100vh-1rem)] w-[76px] shrink-0 flex-col text-[var(--text)] sm:w-72">
-      <div className="border-b border-[var(--border)] px-3 py-4 sm:px-4">
-        <div className="flex items-center justify-center gap-3 sm:justify-start">
-          <span className="brand-mark h-10 w-10 rounded-xl">R</span>
-          <div className="hidden min-w-0 sm:block">
-            <p className="truncate text-sm font-black">Ringo</p>
-            <p className="truncate text-xs font-semibold text-[var(--muted)]">
-              Workspace console
-            </p>
-          </div>
-        </div>
-      </div>
+    <aside className="dashboard-sidebar flex h-[calc(100vh-1rem)] w-[86px] shrink-0 text-[var(--text)] sm:w-[370px]">
+      <div className="flex w-[84px] shrink-0 flex-col items-center border-r border-[var(--border)] bg-[var(--surface-solid)] px-2 py-4">
+        <span className="brand-mark h-11 w-11 rounded-xl">R</span>
 
-      <div className="soft-scrollbar flex-1 space-y-7 overflow-y-auto px-3 py-4">
-        <div>
-          <SectionTitle>Direct messages</SectionTitle>
-          <div className="mt-3 space-y-1">
-            {dmThreads.map((thread, index) => (
-              <button
-                key={thread.id || `${thread.participant?.email}-${index}`}
-                type="button"
-                onClick={() => onSelectThread(thread.id)}
-                className={`sidebar-item ${
-                  selectedThreadId === thread.id ? "sidebar-item-active" : ""
-                }`}
-                title={thread.participant?.name || "Direct Message"}
-              >
-                <AtIcon />
-                <span className="hidden truncate sm:inline">
-                  {thread.participant?.name || "Direct Message"}
-                </span>
-              </button>
-            ))}
-            {dmThreads.length === 0 ? (
-              <p className="hidden px-3 py-2 text-xs font-semibold text-[var(--faint)] sm:block">
-                No direct messages yet.
-              </p>
-            ) : null}
-          </div>
-        </div>
-
-        <div>
-          <SectionTitle>Servers</SectionTitle>
-          <div className="mt-3 space-y-2">
-            {servers.map((server, index) => (
-              <button
-                key={server.id || `${server.name}-${index}`}
-                type="button"
-                onClick={() => onSelectServer(server.id)}
-                className={`sidebar-item ${
-                  selectedServerId === server.id ? "sidebar-item-active" : ""
-                }`}
-                title={server.name}
-              >
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--primary-soft)] text-xs font-black text-[var(--primary-strong)] shadow-sm">
-                  {server.name.slice(0, 2).toUpperCase()}
-                </span>
-                <span className="hidden truncate sm:inline">{server.name}</span>
-              </button>
-            ))}
-          </div>
+        <div className="mt-5 grid gap-2">
           <button
             type="button"
-            onClick={onCreateServer}
-            className="btn-secondary mt-4 w-full text-xs"
-            title="Create server"
+            onClick={() => onTabChange("servers")}
+            className={`icon-button relative h-11 w-11 ${
+              activeTab === "servers" ? "border-[var(--primary)] bg-[var(--primary-faint)] text-[var(--primary-strong)]" : ""
+            }`}
+            aria-label="Servers"
+            title="Servers"
           >
-            <span>+</span>
-            <span className="hidden sm:inline">Create Server</span>
+            <ServerIcon />
+            <UnreadDot show={hasServerUnread} />
           </button>
-          {canManageServer ? (
-            <div className="mt-3 grid gap-2">
-              <button
-                type="button"
-                onClick={onCreateInvite}
-                className="btn-secondary w-full text-xs"
-              >
-                Invite
-              </button>
-              <button
-                type="button"
-                onClick={onRenameServer}
-                className="btn-secondary w-full text-xs"
-              >
-                Rename
-              </button>
-              <button
-                type="button"
-                onClick={onDeleteServer}
-                className="w-full rounded-full border border-rose-400/40 px-3 py-2 text-xs font-black text-rose-600 transition hover:bg-rose-500/10 disabled:opacity-60"
-              >
-                Delete
-              </button>
-            </div>
-          ) : null}
+          <button
+            type="button"
+            onClick={() => onTabChange("dms")}
+            className={`icon-button relative h-11 w-11 ${
+              activeTab === "dms" ? "border-[var(--primary)] bg-[var(--primary-faint)] text-[var(--primary-strong)]" : ""
+            }`}
+            aria-label="Direct messages"
+            title="Direct messages"
+          >
+            <MessagesIcon />
+            <UnreadDot show={hasDmUnread} />
+          </button>
         </div>
 
-        <div>
-          <SectionTitle>Channels</SectionTitle>
-          <div className="mt-3 space-y-1">
-            {isLoadingChannels ? (
-              <p className="px-3 py-2 text-xs font-semibold text-[var(--faint)]">
-                Loading...
-              </p>
-            ) : null}
-            {channels.length === 0 ? (
-              <p className="hidden px-3 py-2 text-xs font-semibold text-[var(--faint)] sm:block">
-                No channels yet.
-              </p>
-            ) : null}
-            {channels.map((channel, index) => (
-              <button
-                key={channel.id || `${channel.name}-${index}`}
-                type="button"
-                onClick={() => onSelectChannel(channel.id)}
-                className={`sidebar-item ${
-                  selectedChannelId === channel.id ? "sidebar-item-active" : ""
-                }`}
-                title={channel.name}
-              >
-                <HashIcon />
-                <span className="hidden truncate sm:inline">{channel.name}</span>
-              </button>
-            ))}
-          </div>
-          {canManageServer ? (
-            <button
-              type="button"
-              onClick={onCreateChannel}
-              disabled={!selectedServerId}
-              className="btn-secondary mt-3 w-full text-xs"
-              title="Create channel"
-            >
-              <span>+</span>
-              <span className="hidden sm:inline">Create Channel</span>
-            </button>
-          ) : null}
+        <div className="mt-auto">
+          <SettingsPopover />
         </div>
       </div>
 
-      <div className="border-t border-[var(--border)] p-3 sm:p-4">
-        <SettingsPopover />
+      <div className="hidden min-w-0 flex-1 flex-col sm:flex">
+        {activeTab === "servers" ? (
+          <>
+            <div className="border-b border-[var(--border)] px-4 py-4">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-black">Servers</p>
+                  <p className="truncate text-xs font-semibold text-[var(--muted)]">
+                    {servers.length} joined
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={onCreateServer}
+                  className="icon-button h-10 w-10"
+                  aria-label="Create server"
+                  title="Create server"
+                >
+                  <PlusIcon />
+                </button>
+              </div>
+            </div>
+
+            <div className="soft-scrollbar flex-1 overflow-y-auto px-3 py-4">
+              <div className="space-y-2">
+                {servers.map((server, index) => (
+                  <button
+                    key={server.id || `${server.name}-${index}`}
+                    type="button"
+                    onClick={() => onSelectServer(server.id)}
+                    className={`sidebar-item relative ${
+                      selectedServerId === server.id ? "sidebar-item-active" : ""
+                    }`}
+                    title={server.name}
+                  >
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--primary-soft)] text-xs font-black text-[var(--primary-strong)] shadow-sm">
+                      {server.name.slice(0, 2).toUpperCase()}
+                    </span>
+                    <span className="min-w-0 flex-1 truncate">{server.name}</span>
+                    <UnreadDot show={unreadServerIds.has(server.id)} />
+                  </button>
+                ))}
+                {servers.length === 0 ? (
+                  <p className="px-3 py-2 text-xs font-semibold text-[var(--faint)]">
+                    Create a server to get started.
+                  </p>
+                ) : null}
+              </div>
+
+              <div className="mt-6 border-t border-[var(--border)] pt-5">
+                <SectionTitle>{selectedServer?.name || "Channels"}</SectionTitle>
+                {canManageServer ? (
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => onCreateChannel("text")}
+                      disabled={!selectedServerId}
+                      className="btn-secondary min-h-10 px-3 py-2 text-xs"
+                    >
+                      <HashIcon />
+                      Text
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onCreateChannel("voice")}
+                      disabled={!selectedServerId}
+                      className="btn-secondary min-h-10 px-3 py-2 text-xs"
+                    >
+                      <VoiceIcon />
+                      Voice
+                    </button>
+                  </div>
+                ) : null}
+
+                {canManageServer ? (
+                  <div className="mt-3 grid grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={onCreateInvite}
+                      className="btn-secondary min-h-9 px-2 py-2 text-xs"
+                    >
+                      Invite
+                    </button>
+                    <button
+                      type="button"
+                      onClick={onRenameServer}
+                      className="btn-secondary min-h-9 px-2 py-2 text-xs"
+                    >
+                      Rename
+                    </button>
+                    <button
+                      type="button"
+                      onClick={onDeleteServer}
+                      className="min-h-9 rounded-full border border-rose-400/40 px-2 py-2 text-xs font-black text-rose-600 transition hover:bg-rose-500/10 disabled:opacity-60"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                ) : null}
+
+                <div className="mt-5">
+                  <SectionTitle>Text</SectionTitle>
+                  <div className="mt-2 space-y-1">
+                    {isLoadingChannels ? (
+                      <p className="px-3 py-2 text-xs font-semibold text-[var(--faint)]">
+                        Loading...
+                      </p>
+                    ) : null}
+                    {!isLoadingChannels && textChannels.length === 0 ? (
+                      <p className="px-3 py-2 text-xs font-semibold text-[var(--faint)]">
+                        No text channels yet.
+                      </p>
+                    ) : null}
+                    {textChannels.map((channel, index) => (
+                      <button
+                        key={channel.id || `${channel.name}-${index}`}
+                        type="button"
+                        onClick={() => onSelectChannel(channel.id)}
+                        className={`sidebar-item relative ${
+                          selectedChannelId === channel.id
+                            ? "sidebar-item-active"
+                            : ""
+                        }`}
+                        title={channel.name}
+                      >
+                        <HashIcon />
+                        <span className="min-w-0 flex-1 truncate">
+                          {channel.name}
+                        </span>
+                        <UnreadDot show={unreadChannelIds.has(channel.id)} />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mt-5">
+                  <SectionTitle>Voice</SectionTitle>
+                  <div className="mt-2 space-y-1">
+                    {!isLoadingChannels && voiceChannels.length === 0 ? (
+                      <p className="px-3 py-2 text-xs font-semibold text-[var(--faint)]">
+                        No voice channels yet.
+                      </p>
+                    ) : null}
+                    {voiceChannels.map((channel, index) => (
+                      <button
+                        key={channel.id || `${channel.name}-${index}`}
+                        type="button"
+                        onClick={() => onSelectVoiceChannel(channel)}
+                        className={`sidebar-item ${
+                          activeVoiceChannelId === channel.id
+                            ? "sidebar-item-active"
+                            : ""
+                        }`}
+                        title={channel.name}
+                      >
+                        <VoiceIcon />
+                        <span className="min-w-0 flex-1 truncate">
+                          {channel.name}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="border-b border-[var(--border)] px-4 py-4">
+              <p className="truncate text-sm font-black">Direct messages</p>
+              <p className="truncate text-xs font-semibold text-[var(--muted)]">
+                Conversations with friends
+              </p>
+            </div>
+
+            <div className="soft-scrollbar flex-1 overflow-y-auto px-3 py-4">
+              <div className="space-y-1">
+                {dmThreads.map((thread, index) => (
+                  <button
+                    key={thread.id || `${thread.participant?.email}-${index}`}
+                    type="button"
+                    onClick={() => onSelectThread(thread.id)}
+                    className={`sidebar-item relative ${
+                      selectedThreadId === thread.id ? "sidebar-item-active" : ""
+                    }`}
+                    title={thread.participant?.name || "Direct Message"}
+                  >
+                    <AtIcon />
+                    <span className="min-w-0 flex-1 truncate">
+                      {thread.participant?.name || "Direct Message"}
+                    </span>
+                    <UnreadDot show={unreadDmThreadIds.has(thread.id)} />
+                  </button>
+                ))}
+                {dmThreads.length === 0 ? (
+                  <p className="px-3 py-2 text-xs font-semibold text-[var(--faint)]">
+                    No direct messages yet.
+                  </p>
+                ) : null}
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </aside>
   );

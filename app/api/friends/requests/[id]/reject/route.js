@@ -33,6 +33,19 @@ export async function PATCH(request, { params }) {
     requestDoc.status = "rejected";
     await requestDoc.save();
 
+    [requestDoc.fromUser.toString(), requestDoc.toUser.toString()].forEach(
+      (participantId) => {
+        globalThis.ringoRealtime?.emitToUser?.(
+          participantId,
+          "friend_request_updated",
+          {
+            status: "rejected",
+            requestId: requestDoc._id.toString(),
+          }
+        );
+      }
+    );
+
     return NextResponse.json({ message: "Request rejected" }, { status: 200 });
   } catch {
     return NextResponse.json({ error: "Something went wrong" }, { status: 500 });

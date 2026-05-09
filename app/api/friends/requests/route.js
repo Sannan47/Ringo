@@ -92,7 +92,10 @@ export async function POST(request) {
 
     await connectDb();
 
-    const target = await User.findOne({ email }).lean();
+    const [target, currentUser] = await Promise.all([
+      User.findOne({ email }).lean(),
+      User.findById(user.userId).lean(),
+    ]);
 
     if (!target) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
@@ -126,6 +129,22 @@ export async function POST(request) {
       fromUser: user.userId,
       toUser: target._id,
     });
+
+    globalThis.ringoRealtime?.emitToUser?.(
+      target._id.toString(),
+      "friend_request_created",
+      {
+        request: {
+          id: requestDoc._id.toString(),
+          from: {
+            id: user.userId,
+            name: currentUser?.name,
+            email: user.email,
+          },
+          createdAt: requestDoc.createdAt,
+        },
+      }
+    );
 
     return NextResponse.json(
       {

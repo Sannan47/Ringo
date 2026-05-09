@@ -11,6 +11,7 @@ export default function ChatPanel({
   onTyping,
   canSend,
   onSendMessage,
+  voiceRoom,
 }) {
   const [messageText, setMessageText] = useState("");
   const endRef = useRef(null);
@@ -86,6 +87,12 @@ export default function ChatPanel({
           </span>
         </div>
       </header>
+
+      {voiceRoom ? (
+        <div className="border-b border-[var(--border)] bg-[var(--surface)] px-4 py-4 sm:px-6">
+          <div className="mx-auto w-full max-w-4xl">{voiceRoom}</div>
+        </div>
+      ) : null}
 
       <div className="soft-scrollbar flex-1 overflow-y-auto px-4 py-6 sm:px-6">
         <div className="mx-auto w-full max-w-4xl space-y-5">

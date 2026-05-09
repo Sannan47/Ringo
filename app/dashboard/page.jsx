@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Sidebar from "../../components/Sidebar";
 import ChatPanel from "../../components/ChatPanel";
 import FriendsSidebar from "../../components/FriendsSidebar";
+import VoiceRoom from "../../components/chat/VoiceRoom";
 import useSocket from "../../hooks/useSocket";
 import { useAuth } from "../../context/AuthContext";
 
@@ -94,7 +95,7 @@ function CreateServerModal({
   );
 }
 
-export default function DashboardPage() {
+export default function DashboardPage({ initialServerId = null } = {}) {
   const [servers, setServers] = useState([]);
   const [dmThreads, setDmThreads] = useState([]);
   const [channels, setChannels] = useState([]);
@@ -114,6 +115,11 @@ export default function DashboardPage() {
   const [onlineFriendIds, setOnlineFriendIds] = useState([]);
   const [onlineCount, setOnlineCount] = useState(0);
   const [typingUsers, setTypingUsers] = useState([]);
+  const [sidebarTab, setSidebarTab] = useState("servers");
+  const [unreadDmThreadIds, setUnreadDmThreadIds] = useState(() => new Set());
+  const [unreadChannelIds, setUnreadChannelIds] = useState(() => new Set());
+  const [draftDmThread, setDraftDmThread] = useState(null);
+  const [activeVoiceChannel, setActiveVoiceChannel] = useState(null);
   const [isCreateServerOpen, setIsCreateServerOpen] = useState(false);
   const [createServerName, setCreateServerName] = useState("");
   const [createServerError, setCreateServerError] = useState("");
@@ -130,9 +136,28 @@ export default function DashboardPage() {
     [servers, selectedServerId]
   );
   const selectedThread = useMemo(
-    () => dmThreads.find((thread) => thread.id === selectedThreadId) || null,
-    [dmThreads, selectedThreadId]
+    () =>
+      dmThreads.find((thread) => thread.id === selectedThreadId) ||
+      (draftDmThread?.id === selectedThreadId ? draftDmThread : null),
+    [dmThreads, draftDmThread, selectedThreadId]
   );
+  const textChannels = useMemo(
+    () => channels.filter((channel) => channel.type !== "voice"),
+    [channels]
+  );
+  const voiceChannels = useMemo(
+    () => channels.filter((channel) => channel.type === "voice"),
+    [channels]
+  );
+  const unreadServerIds = useMemo(() => {
+    const channelIds = unreadChannelIds;
+    return new Set(
+      channels
+        .filter((channel) => channelIds.has(channel.id))
+        .map((channel) => channel.serverId)
+        .filter(Boolean)
+    );
+  }, [channels, unreadChannelIds]);
   const canManageServer = Boolean(
     selectedServer && user && selectedServer.ownerId === user.userId
   );
@@ -151,7 +176,10 @@ export default function DashboardPage() {
           }));
           setServers(normalized);
           if (normalized.length > 0) {
-            setSelectedServerId(normalized[0].id);
+            const initialServer = normalized.find(
+              (server) => server.id === initialServerId
+            );
+            setSelectedServerId(initialServer?.id || normalized[0].id);
           }
         }
       } catch {
@@ -160,32 +188,34 @@ export default function DashboardPage() {
     };
 
     loadServers();
+  }, [initialServerId]);
+
+  const loadDmThreads = useCallback(async () => {
+    setIsLoadingThreads(true);
+
+    try {
+      const response = await fetch("/api/dms/threads");
+      const data = await response.json();
+
+      if (response.ok) {
+        setDmThreads(data.threads || []);
+      } else {
+        setDmThreads([]);
+      }
+    } catch {
+      setDmThreads([]);
+    } finally {
+      setIsLoadingThreads(false);
+    }
   }, []);
 
   useEffect(() => {
-    const loadThreads = async () => {
-      setIsLoadingThreads(true);
+    queueMicrotask(() => {
+      loadDmThreads();
+    });
+  }, [loadDmThreads]);
 
-      try {
-        const response = await fetch("/api/dms/threads");
-        const data = await response.json();
-
-        if (response.ok) {
-          setDmThreads(data.threads || []);
-        } else {
-          setDmThreads([]);
-        }
-      } catch {
-        setDmThreads([]);
-      } finally {
-        setIsLoadingThreads(false);
-      }
-    };
-
-    loadThreads();
-  }, []);
-
-  const loadFriends = async () => {
+  const loadFriends = useCallback(async () => {
     try {
       const response = await fetch("/api/friends/requests");
       const data = await response.json();
@@ -200,7 +230,7 @@ export default function DashboardPage() {
       setOutgoingRequests([]);
       setFriends([]);
     }
-  };
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -233,7 +263,7 @@ export default function DashboardPage() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [initialServerId]);
 
   useEffect(() => {
     const loadChannels = async () => {
@@ -253,9 +283,13 @@ export default function DashboardPage() {
           const normalized = (data.channels || []).map((channel) => ({
             id: channel.id || channel._id,
             name: channel.name,
+            type: channel.type || "text",
+            serverId: channel.serverId || selectedServerId,
           }));
           setChannels(normalized);
-          setSelectedChannelId(normalized[0]?.id || null);
+          setSelectedChannelId(
+            normalized.find((channel) => channel.type !== "voice")?.id || null
+          );
         } else {
           setChannels([]);
           setSelectedChannelId(null);
@@ -329,6 +363,44 @@ export default function DashboardPage() {
     loadDmMessages();
   }, [selectedThreadId]);
 
+  const upsertDmThread = useCallback((thread) => {
+    if (!thread?.id) {
+      return;
+    }
+
+    setDmThreads((prev) => {
+      const existing = prev.find((entry) => entry.id === thread.id);
+      const nextThread = existing ? { ...existing, ...thread } : thread;
+      return [nextThread, ...prev.filter((entry) => entry.id !== thread.id)];
+    });
+  }, []);
+
+  const appendDmMessage = useCallback((message) => {
+    if (!message?.id) {
+      return;
+    }
+
+    setDmMessages((prev) => {
+      if (prev.some((existing) => existing.id === message.id)) {
+        return prev;
+      }
+      return [...prev, message];
+    });
+  }, []);
+
+  const appendChannelMessage = useCallback((message) => {
+    if (!message?.id) {
+      return;
+    }
+
+    setMessages((prev) => {
+      if (prev.some((existing) => existing.id === message.id)) {
+        return prev;
+      }
+      return [...prev, message];
+    });
+  }, []);
+
   useEffect(() => {
     if (!socket || !selectedChannelId) {
       return undefined;
@@ -347,12 +419,7 @@ export default function DashboardPage() {
         return;
       }
 
-      setMessages((prev) => {
-        if (prev.some((existing) => existing.id === message.id)) {
-          return prev;
-        }
-        return [...prev, message];
-      });
+      appendChannelMessage(message);
     };
 
     const handleTyping = ({ channelId, user }) => {
@@ -390,7 +457,7 @@ export default function DashboardPage() {
       setTypingUsers([]);
       setOnlineCount(0);
     };
-  }, [socket, selectedChannelId]);
+  }, [appendChannelMessage, socket, selectedChannelId]);
 
   useEffect(() => {
     if (!socket) {
@@ -416,6 +483,76 @@ export default function DashboardPage() {
   }, [socket, friends]);
 
   useEffect(() => {
+    if (!socket) {
+      return undefined;
+    }
+
+    const handleFriendChange = async () => {
+      await loadFriends();
+      await loadDmThreads();
+    };
+
+    const handleDmActivity = ({ thread, message } = {}) => {
+      if (thread) {
+        upsertDmThread(thread);
+      }
+
+      if (message?.threadId === selectedThreadId && viewMode === "dm") {
+        appendDmMessage(message);
+        setUnreadDmThreadIds((prev) => {
+          const next = new Set(prev);
+          next.delete(message.threadId);
+          return next;
+        });
+        return;
+      }
+
+      if (message?.sender?.id !== user?.userId && message?.threadId) {
+        setUnreadDmThreadIds((prev) => new Set(prev).add(message.threadId));
+      }
+    };
+
+    const handleServerActivity = ({ channelId, message } = {}) => {
+      if (channelId === selectedChannelId && viewMode === "channel") {
+        appendChannelMessage(message);
+        setUnreadChannelIds((prev) => {
+          const next = new Set(prev);
+          next.delete(channelId);
+          return next;
+        });
+        return;
+      }
+
+      if (message?.sender?.id !== user?.userId && channelId) {
+        setUnreadChannelIds((prev) => new Set(prev).add(channelId));
+      }
+    };
+
+    socket.on("friend_request_created", handleFriendChange);
+    socket.on("friend_request_updated", handleFriendChange);
+    socket.on("dm_activity", handleDmActivity);
+    socket.on("server_activity", handleServerActivity);
+
+    return () => {
+      socket.off("friend_request_created", handleFriendChange);
+      socket.off("friend_request_updated", handleFriendChange);
+      socket.off("dm_activity", handleDmActivity);
+      socket.off("server_activity", handleServerActivity);
+    };
+  }, [
+    appendChannelMessage,
+    appendDmMessage,
+    loadDmThreads,
+    loadFriends,
+    selectedChannelId,
+    selectedThreadId,
+    socket,
+    upsertDmThread,
+    user?.userId,
+    viewMode,
+  ]);
+
+  useEffect(() => {
     if (!socket || !selectedThreadId) {
       return undefined;
     }
@@ -427,12 +564,7 @@ export default function DashboardPage() {
         return;
       }
 
-      setDmMessages((prev) => {
-        if (prev.some((existing) => existing.id === message.id)) {
-          return prev;
-        }
-        return [...prev, message];
-      });
+      appendDmMessage(message);
     };
 
     socket.on("receive_dm", handleReceiveDm);
@@ -441,7 +573,7 @@ export default function DashboardPage() {
       socket.emit("leave_dm", { threadId: selectedThreadId });
       socket.off("receive_dm", handleReceiveDm);
     };
-  }, [socket, selectedThreadId]);
+  }, [appendDmMessage, socket, selectedThreadId]);
 
   const handleTyping = (isTyping) => {
     if (!socket || !selectedChannelId) {
@@ -479,6 +611,7 @@ export default function DashboardPage() {
         };
         setServers((prev) => [newServer, ...prev]);
         setSelectedServerId(newServer.id);
+        setSidebarTab("servers");
         setCreateServerName("");
         setIsCreateServerOpen(false);
       } else {
@@ -518,12 +651,15 @@ export default function DashboardPage() {
     }
   };
 
-  const handleCreateChannel = async () => {
+  const handleCreateChannel = async (type = "text") => {
     if (!selectedServerId || !canManageServer) {
       return;
     }
 
-    const name = window.prompt("Channel name");
+    const channelType = type === "voice" ? "voice" : "text";
+    const name = window.prompt(
+      `${channelType === "voice" ? "Voice" : "Text"} channel name`
+    );
 
     if (!name || !name.trim()) {
       return;
@@ -533,7 +669,11 @@ export default function DashboardPage() {
       const response = await fetch("/api/channels", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim(), serverId: selectedServerId }),
+        body: JSON.stringify({
+          name: name.trim(),
+          type: channelType,
+          serverId: selectedServerId,
+        }),
       });
       const data = await response.json();
 
@@ -541,9 +681,15 @@ export default function DashboardPage() {
         const newChannel = {
           id: data.channel.id || data.channel._id,
           name: data.channel.name,
+          type: data.channel.type || channelType,
+          serverId: data.channel.serverId || selectedServerId,
         };
         setChannels((prev) => [newChannel, ...prev]);
-        setSelectedChannelId(newChannel.id);
+        if (newChannel.type === "voice") {
+          setActiveVoiceChannel(newChannel);
+        } else {
+          setSelectedChannelId(newChannel.id);
+        }
       }
     } catch {
       // No-op for now.
@@ -608,6 +754,9 @@ export default function DashboardPage() {
         setChannels([]);
         setMessages([]);
         setSelectedChannelId(null);
+        if (activeVoiceChannel?.serverId === selectedServerId) {
+          setActiveVoiceChannel(null);
+        }
       }
     } catch {
       // No-op for now.
@@ -666,11 +815,7 @@ export default function DashboardPage() {
       );
       if (response.ok) {
         await loadFriends();
-        const threadsResponse = await fetch("/api/dms/threads");
-        const threadsData = await threadsResponse.json();
-        if (threadsResponse.ok) {
-          setDmThreads(threadsData.threads || []);
-        }
+        await loadDmThreads();
       }
     } catch {
       // No-op for now.
@@ -703,13 +848,23 @@ export default function DashboardPage() {
       if (response.ok) {
         const threadId = data.thread?.id;
         if (threadId) {
-          const threadsResponse = await fetch("/api/dms/threads");
-          const threadsData = await threadsResponse.json();
-          if (threadsResponse.ok) {
-            setDmThreads(threadsData.threads || []);
-          }
+          await loadDmThreads();
+          setDraftDmThread({
+            id: threadId,
+            participant: {
+              id: friend.id,
+              name: friend.name,
+              email: friend.email,
+            },
+          });
           setSelectedThreadId(threadId);
           setViewMode("dm");
+          setSidebarTab("dms");
+          setUnreadDmThreadIds((prev) => {
+            const next = new Set(prev);
+            next.delete(threadId);
+            return next;
+          });
         }
       }
     } catch {
@@ -720,16 +875,38 @@ export default function DashboardPage() {
   const handleSelectThread = (threadId) => {
     setSelectedThreadId(threadId);
     setViewMode("dm");
+    setSidebarTab("dms");
+    setUnreadDmThreadIds((prev) => {
+      const next = new Set(prev);
+      next.delete(threadId);
+      return next;
+    });
   };
 
   const handleSelectServer = (serverId) => {
     setSelectedServerId(serverId);
     setViewMode("channel");
+    setSidebarTab("servers");
   };
 
   const handleSelectChannel = (channelId) => {
     setSelectedChannelId(channelId);
     setViewMode("channel");
+    setSidebarTab("servers");
+    setUnreadChannelIds((prev) => {
+      const next = new Set(prev);
+      next.delete(channelId);
+      return next;
+    });
+  };
+
+  const handleSelectVoiceChannel = (channel) => {
+    if (!channel?.id) {
+      return;
+    }
+
+    setActiveVoiceChannel(channel);
+    setSidebarTab("servers");
   };
 
   return (
@@ -737,16 +914,25 @@ export default function DashboardPage() {
       <Sidebar
         servers={servers}
         dmThreads={dmThreads}
-        channels={channels}
+        textChannels={textChannels}
+        voiceChannels={voiceChannels}
+        activeTab={sidebarTab}
+        onTabChange={setSidebarTab}
+        unreadDmThreadIds={unreadDmThreadIds}
+        unreadServerIds={unreadServerIds}
+        unreadChannelIds={unreadChannelIds}
+        activeVoiceChannelId={activeVoiceChannel?.id}
         selectedServerId={selectedServerId}
         selectedChannelId={selectedChannelId}
         selectedThreadId={selectedThreadId}
         onSelectServer={handleSelectServer}
         onSelectChannel={handleSelectChannel}
+        onSelectVoiceChannel={handleSelectVoiceChannel}
         onSelectThread={handleSelectThread}
         onCreateServer={() => {
           setCreateServerError("");
           setCreateServerName("");
+          setSidebarTab("servers");
           setIsCreateServerOpen(true);
         }}
         onCreateChannel={handleCreateChannel}
@@ -781,6 +967,19 @@ export default function DashboardPage() {
         onTyping={viewMode === "dm" ? null : handleTyping}
         canSend={viewMode === "dm" ? Boolean(selectedThreadId) : Boolean(selectedChannelId)}
         onSendMessage={viewMode === "dm" ? handleSendDm : handleSendMessage}
+        voiceRoom={
+          activeVoiceChannel ? (
+            <VoiceRoom
+              key={activeVoiceChannel.id}
+              socket={socket}
+              roomId={activeVoiceChannel.id}
+              roomName={activeVoiceChannel.name}
+              currentUser={user}
+              autoJoin
+              onEnded={() => setActiveVoiceChannel(null)}
+            />
+          ) : null
+        }
       />
       <FriendsSidebar
         friends={friends}
