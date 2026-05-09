@@ -1,7 +1,7 @@
 import { createServer } from "http";
-import next from "next";
+import { existsSync, readFileSync } from "fs";
+import { resolve } from "path";
 import { Server as SocketIOServer } from "socket.io";
-import nextEnv from "@next/env";
 import connectDb from "./lib/db.js";
 import Channel from "./models/Channel.js";
 import Message from "./models/Message.js";
@@ -13,13 +13,40 @@ import { verifyToken } from "./lib/auth.js";
 import { isStoredImageUrl } from "./lib/images.js";
 import { registerVoiceHandlers } from "./socket/index.js";
 
-const { loadEnvConfig } = nextEnv;
-loadEnvConfig(process.cwd());
+const loadLocalEnv = () => {
+  for (const fileName of [".env.local", ".env"]) {
+    const filePath = resolve(process.cwd(), fileName);
+    if (!existsSync(filePath)) {
+      continue;
+    }
 
-const dev = process.env.NODE_ENV !== "production";
-const port = Number(process.env.PORT) || 3000;
-const app = next({ dev });
-const handle = app.getRequestHandler();
+    const lines = readFileSync(filePath, "utf8").split(/\r?\n/);
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#") || !trimmed.includes("=")) {
+        continue;
+      }
+
+      const [key, ...valueParts] = trimmed.split("=");
+      if (!process.env[key]) {
+        process.env[key] = valueParts.join("=");
+      }
+    }
+  }
+};
+
+loadLocalEnv();
+
+const port = Number(process.env.PORT) || 4000;
+const allowedOrigins = (
+  process.env.CLIENT_ORIGIN ||
+  process.env.FRONTEND_ORIGIN ||
+  process.env.NEXT_PUBLIC_APP_URL ||
+  "http://localhost:3000"
+)
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
 
 const parseCookies = (cookieHeader) =>
   cookieHeader
@@ -32,12 +59,69 @@ const parseCookies = (cookieHeader) =>
       return acc;
     }, {});
 
-await app.prepare();
+const readJsonBody = async (req) =>
+  new Promise((resolveBody, rejectBody) => {
+    let body = "";
 
-const httpServer = createServer((req, res) => handle(req, res));
+    req.on("data", (chunk) => {
+      body += chunk;
+      if (body.length > 1024 * 1024) {
+        req.destroy();
+        rejectBody(new Error("Request body too large"));
+      }
+    });
+    req.on("end", () => {
+      try {
+        resolveBody(body ? JSON.parse(body) : {});
+      } catch (error) {
+        rejectBody(error);
+      }
+    });
+    req.on("error", rejectBody);
+  });
+
+const httpServer = createServer((req, res) => {
+  if (req.url === "/health") {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true, service: "ringo-realtime" }));
+    return;
+  }
+
+  if (req.method === "POST" && req.url === "/internal/emit") {
+    const configuredSecret = process.env.REALTIME_INTERNAL_SECRET;
+    const providedSecret = req.headers["x-internal-secret"];
+
+    if (!configuredSecret || providedSecret !== configuredSecret) {
+      res.writeHead(401, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Unauthorized" }));
+      return;
+    }
+
+    readJsonBody(req)
+      .then(({ userId, eventName, payload }) => {
+        if (!userId || !eventName) {
+          res.writeHead(400, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: "Invalid realtime event" }));
+          return;
+        }
+
+        emitToUser(userId, eventName, payload || {});
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: true }));
+      })
+      .catch(() => {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Invalid JSON" }));
+      });
+    return;
+  }
+
+  res.writeHead(404, { "Content-Type": "application/json" });
+  res.end(JSON.stringify({ error: "Not found" }));
+});
 const io = new SocketIOServer(httpServer, {
   cors: {
-    origin: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+    origin: allowedOrigins,
     credentials: true,
   },
 });
@@ -47,10 +131,10 @@ io.use(async (socket, nextMiddleware) => {
   try {
     const cookieHeader = socket.handshake.headers.cookie || "";
     const cookies = parseCookies(cookieHeader);
-    const token = cookies.token;
+    const token = socket.handshake.auth?.token || cookies.token;
     const user = token ? verifyToken(token) : null;
 
-    if (!user) {
+    if (!user?.userId || (user.purpose && user.purpose !== "socket")) {
       return nextMiddleware(new Error("Unauthorized"));
     }
 
@@ -374,5 +458,5 @@ io.on("connection", (socket) => {
 });
 
 httpServer.listen(port, () => {
-  console.log(`> Server ready on http://localhost:${port}`);
+  console.log(`> Realtime server ready on http://localhost:${port}`);
 });

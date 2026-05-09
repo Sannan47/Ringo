@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import connectDb from "../../../../../../lib/db";
 import FriendRequest from "../../../../../../models/FriendRequest";
 import { requireAuth } from "../../../../../../lib/permissions";
+import { emitRealtimeToUser } from "../../../../../../lib/realtime";
 
 export async function PATCH(request, { params }) {
   const { user, response } = requireAuth(request);
@@ -35,7 +36,7 @@ export async function PATCH(request, { params }) {
 
     [requestDoc.fromUser.toString(), requestDoc.toUser.toString()].forEach(
       (participantId) => {
-        globalThis.ringoRealtime?.emitToUser?.(
+        emitRealtimeToUser(
           participantId,
           "friend_request_updated",
           {

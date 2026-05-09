@@ -4,6 +4,7 @@ import FriendRequest from "../../../../../../models/FriendRequest";
 import Friendship from "../../../../../../models/Friendship";
 import DirectThread from "../../../../../../models/DirectThread";
 import { requireAuth } from "../../../../../../lib/permissions";
+import { emitRealtimeToUser } from "../../../../../../lib/realtime";
 
 export async function PATCH(request, { params }) {
   const { user, response } = requireAuth(request);
@@ -62,7 +63,7 @@ export async function PATCH(request, { params }) {
 
     const participants = usersPair.map((entry) => entry.toString());
     participants.forEach((participantId) => {
-      globalThis.ringoRealtime?.emitToUser?.(
+      emitRealtimeToUser(
         participantId,
         "friend_request_updated",
         {

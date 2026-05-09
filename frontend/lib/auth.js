@@ -14,6 +14,12 @@ export function signAuthToken(payload) {
   return jwt.sign(payload, getJwtSecret(), { expiresIn: "7d" });
 }
 
+export function signSocketToken(payload) {
+  return jwt.sign({ ...payload, purpose: "socket" }, getJwtSecret(), {
+    expiresIn: "10m",
+  });
+}
+
 export function verifyToken(token) {
   try {
     return jwt.verify(token, getJwtSecret());

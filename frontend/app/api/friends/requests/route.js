@@ -4,6 +4,7 @@ import FriendRequest from "../../../../models/FriendRequest";
 import Friendship from "../../../../models/Friendship";
 import User from "../../../../models/User";
 import { requireAuth } from "../../../../lib/permissions";
+import { emitRealtimeToUser } from "../../../../lib/realtime";
 
 export async function GET(request) {
   const { user, response } = requireAuth(request);
@@ -133,7 +134,7 @@ export async function POST(request) {
       toUser: target._id,
     });
 
-    globalThis.ringoRealtime?.emitToUser?.(
+    emitRealtimeToUser(
       target._id.toString(),
       "friend_request_created",
       {
