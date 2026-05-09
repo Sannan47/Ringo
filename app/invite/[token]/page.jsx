@@ -27,7 +27,7 @@ export default function InvitePage() {
         } else {
           setStatus(data?.error || "Invite invalid or expired");
         }
-      } catch (error) {
+      } catch {
         setStatus("Invite invalid or expired");
       }
     };

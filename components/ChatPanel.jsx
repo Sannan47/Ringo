@@ -44,7 +44,8 @@ export default function ChatPanel({
     }, 1200);
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (event) => {
+    event?.preventDefault();
     const trimmed = messageText.trim();
 
     if (!trimmed || !canSend) {
@@ -63,22 +64,30 @@ export default function ChatPanel({
   useEffect(() => () => clearTypingTimer(), []);
 
   return (
-    <section className="flex h-[calc(100vh-65px)] min-w-0 flex-1 flex-col bg-[var(--page)]">
+    <section className="dashboard-chat flex h-[calc(100vh-1rem)] min-w-0 flex-1 flex-col">
       <header className="border-b border-[var(--border)] bg-[var(--surface)] px-4 py-4 backdrop-blur-xl sm:px-6">
         <div className="flex items-center justify-between gap-4">
-          <div className="min-w-0">
-            <p className="text-xs font-black uppercase tracking-[0.14em] text-[var(--faint)]">
-              Active room
-            </p>
-            <h2 className="mt-1 truncate text-xl font-black text-[var(--text)]">
-              {title || "Select a chat"}
-            </h2>
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[var(--accent-soft)] text-lg font-black text-[var(--accent)] sm:flex">
+              {(title || "?").replace("#", "").slice(0, 1).toUpperCase()}
+            </span>
+            <div className="min-w-0">
+              <p className="text-xs font-black uppercase tracking-[0.14em] text-[var(--faint)]">
+                Active room
+              </p>
+              <h2 className="mt-1 truncate text-xl font-black text-[var(--text)]">
+                {title || "Select a chat"}
+              </h2>
+            </div>
           </div>
-          <span className="status-pill shrink-0">{statusLabel || "Idle"}</span>
+          <span className="status-pill shrink-0">
+            <span className="status-dot" />
+            {statusLabel || "Idle"}
+          </span>
         </div>
       </header>
 
-      <div className="flex-1 overflow-y-auto px-4 py-6 sm:px-6">
+      <div className="soft-scrollbar flex-1 overflow-y-auto px-4 py-6 sm:px-6">
         <div className="mx-auto w-full max-w-4xl space-y-5">
           {isLoading ? (
             <div className="ringo-panel p-4 text-sm font-semibold text-[var(--muted)]">
@@ -95,8 +104,12 @@ export default function ChatPanel({
               </p>
             </div>
           ) : null}
-          {formattedMessages.map((message) => (
-            <div key={message.id} className="group flex gap-3 rounded-lg p-2 transition hover:bg-[var(--surface)]">
+          {formattedMessages.map((message, index) => (
+            <div
+              key={message.id}
+              className="message-row group flex gap-3 rounded-lg p-2 transition hover:bg-[var(--surface)]"
+              style={{ animationDelay: `${Math.min(index, 8) * 35}ms` }}
+            >
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--primary-soft)] text-sm font-black text-[var(--primary-strong)]">
                 {message.sender?.name?.slice(0, 1) || "?"}
               </div>
@@ -122,27 +135,23 @@ export default function ChatPanel({
       <div className="border-t border-[var(--border)] bg-[var(--surface)] px-4 py-4 sm:px-6">
         <div className="mx-auto w-full max-w-4xl">
           {typingUsers.length > 0 ? (
-            <div className="mb-3 text-xs font-semibold text-[var(--muted)]">
-              {typingUsers.length === 1
-                ? `${typingUsers[0].name} is typing...`
-                : `${typingUsers.map((user) => user.name).join(", ")} are typing...`}
+            <div className="mb-3 flex items-center gap-2 text-xs font-semibold text-[var(--muted)]">
+              <span>
+                {typingUsers.length === 1
+                  ? `${typingUsers[0].name} is typing`
+                  : `${typingUsers.map((user) => user.name).join(", ")} are typing`}
+              </span>
+              <span className="flex gap-1" aria-hidden="true">
+                <span className="typing-dot h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />
+                <span className="typing-dot h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />
+                <span className="typing-dot h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />
+              </span>
             </div>
           ) : null}
-          <div className="flex items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface-solid)] p-2 shadow-sm">
-            <button type="button" className="icon-button h-9 w-9" aria-label="Add attachment">
-              <svg
-                aria-hidden="true"
-                className="h-4 w-4"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-              >
-                <path d="M12 5v14" />
-                <path d="M5 12h14" />
-              </svg>
-            </button>
+          <form
+            className="flex items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface-solid)] p-2 shadow-sm transition focus-within:border-[var(--primary)] focus-within:shadow-[var(--ring)]"
+            onSubmit={handleSubmit}
+          >
             <input
               type="text"
               placeholder="Send a message"
@@ -155,8 +164,7 @@ export default function ChatPanel({
               onBlur={() => onTyping?.(false)}
               onKeyDown={(event) => {
                 if (event.key === "Enter") {
-                  event.preventDefault();
-                  handleSubmit();
+                  handleSubmit(event);
                 }
               }}
               className="min-w-0 flex-1 bg-transparent px-1 text-sm text-[var(--text)] placeholder:text-[var(--faint)] focus:outline-none"
@@ -169,7 +177,7 @@ export default function ChatPanel({
             >
               Send
             </button>
-          </div>
+          </form>
         </div>
       </div>
     </section>

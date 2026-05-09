@@ -46,7 +46,7 @@ export async function GET(request, { params }) {
     }));
 
     return NextResponse.json({ messages: formatted }, { status: 200 });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
   }
 }

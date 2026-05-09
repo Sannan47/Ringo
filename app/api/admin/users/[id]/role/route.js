@@ -51,7 +51,7 @@ export async function PATCH(request, { params }) {
       },
       { status: 200 }
     );
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
   }
 }

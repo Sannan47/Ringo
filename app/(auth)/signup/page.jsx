@@ -79,7 +79,7 @@ export default function SignupPage() {
 
       setSuccessMessage("Account created. You can now log in.");
       setFormData({ name: "", email: "", password: "" });
-    } catch (error) {
+    } catch {
       setServerError("Something went wrong. Please try again.");
     } finally {
       setIsSubmitting(false);
@@ -91,7 +91,7 @@ export default function SignupPage() {
       <div className="ringo-container grid min-h-[calc(100vh-76px)] items-center gap-10 py-12 lg:grid-cols-[0.95fr_1.05fr]">
         <div className="max-w-md space-y-5 fade-in-up">
           <div className="eyebrow">Create workspace access</div>
-          <h1 className="text-4xl font-black leading-tight tracking-tight text-[var(--text)]">
+          <h1 className="text-4xl font-black leading-tight text-[var(--text)]">
             Start a polished team space in minutes.
           </h1>
           <p className="text-base leading-7 text-[var(--muted)]">

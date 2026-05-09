@@ -37,7 +37,7 @@ export async function GET(request) {
     });
 
     return NextResponse.json({ threads: formatted }, { status: 200 });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
   }
 }
@@ -143,7 +143,7 @@ export async function POST(request) {
       },
       { status: 201 }
     );
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
   }
 }

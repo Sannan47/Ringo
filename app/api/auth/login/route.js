@@ -1,4 +1,3 @@
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import connectDb from "../../../../lib/db";
 import User from "../../../../models/User";
@@ -65,7 +64,7 @@ export async function POST(request) {
     });
 
     return response;
-  } catch (error) {
+  } catch {
     return NextResponse.json({ message: "Something went wrong" }, { status: 500 });
   }
 }

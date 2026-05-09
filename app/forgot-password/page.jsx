@@ -38,7 +38,7 @@ export default function ForgotPasswordPage() {
 
       setMessage(data?.message || "Password reset token generated");
       setResetLink(data?.resetLink || "");
-    } catch (err) {
+    } catch {
       setError("Unable to generate reset link");
     } finally {
       setIsSubmitting(false);

@@ -4,7 +4,7 @@ export default function ContactPage() {
       <section className="ringo-container grid gap-10 py-16 lg:grid-cols-[0.9fr_1.1fr] lg:py-20">
         <div className="space-y-5 fade-in-up">
           <div className="eyebrow">Contact</div>
-          <h1 className="text-4xl font-black tracking-tight text-[var(--text)] sm:text-5xl">
+          <h1 className="text-4xl font-black text-[var(--text)] sm:text-5xl">
             Tell us what your workspace needs next.
           </h1>
           <p className="max-w-xl text-lg leading-8 text-[var(--muted)]">

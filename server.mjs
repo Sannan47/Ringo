@@ -38,6 +38,7 @@ const io = new SocketIOServer(httpServer, {
     credentials: true,
   },
 });
+const connectedUsers = new Map();
 
 io.use(async (socket, nextMiddleware) => {
   try {
@@ -59,7 +60,7 @@ io.use(async (socket, nextMiddleware) => {
     };
 
     return nextMiddleware();
-  } catch (error) {
+  } catch {
     return nextMiddleware(new Error("Unauthorized"));
   }
 });
@@ -69,8 +70,62 @@ const emitOnlineCount = (channelId) => {
   io.to(channelId).emit("online_count", { channelId, count });
 };
 
+const addConnectedUser = (userId, socketId) => {
+  if (!userId) {
+    return;
+  }
+
+  const sockets = connectedUsers.get(userId) || new Set();
+  sockets.add(socketId);
+  connectedUsers.set(userId, sockets);
+};
+
+const removeConnectedUser = (userId, socketId) => {
+  if (!userId) {
+    return;
+  }
+
+  const sockets = connectedUsers.get(userId);
+  if (!sockets) {
+    return;
+  }
+
+  sockets.delete(socketId);
+  if (sockets.size === 0) {
+    connectedUsers.delete(userId);
+  }
+};
+
+const emitFriendsPresence = (socket) => {
+  const watchedIds = [...(socket.friendWatchIds || [])];
+  const onlineUserIds = watchedIds.filter((userId) =>
+    connectedUsers.has(userId)
+  );
+
+  socket.emit("friends_presence", { onlineUserIds });
+};
+
+const emitPresenceToWatchers = (userId) => {
+  io.sockets.sockets.forEach((client) => {
+    if (client.friendWatchIds?.has(userId)) {
+      emitFriendsPresence(client);
+    }
+  });
+};
+
 io.on("connection", (socket) => {
   console.log(`socket connected: ${socket.id} (${socket.user?.email || ""})`);
+  addConnectedUser(socket.user?.userId, socket.id);
+  emitPresenceToWatchers(socket.user?.userId);
+
+  socket.on("watch_friends", ({ friendIds }) => {
+    socket.friendWatchIds = new Set(
+      Array.isArray(friendIds)
+        ? friendIds.map((id) => String(id)).filter(Boolean)
+        : []
+    );
+    emitFriendsPresence(socket);
+  });
 
   socket.on("join_channel", ({ channelId }) => {
     if (!channelId) {
@@ -211,6 +266,8 @@ io.on("connection", (socket) => {
         emitOnlineCount(roomId);
       }
     });
+    removeConnectedUser(socket.user?.userId, socket.id);
+    emitPresenceToWatchers(socket.user?.userId);
     console.log(`socket disconnected: ${socket.id}`);
   });
 });

@@ -37,7 +37,7 @@ export default function AdminPage() {
         } else {
           setError("Unable to load users");
         }
-      } catch (err) {
+      } catch {
         setError("Unable to load users");
       } finally {
         setIsLoading(false);
@@ -76,7 +76,7 @@ export default function AdminPage() {
       } else {
         setError(data?.error || "Failed to update role");
       }
-    } catch (err) {
+    } catch {
       setError("Failed to update role");
     } finally {
       setUpdatingId("");
@@ -108,7 +108,7 @@ export default function AdminPage() {
       } else {
         setError(data?.error || "Failed to update status");
       }
-    } catch (err) {
+    } catch {
       setError("Failed to update status");
     } finally {
       setUpdatingId("");
@@ -144,7 +144,7 @@ export default function AdminPage() {
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div>
             <div className="eyebrow">Admin Dashboard</div>
-            <h1 className="mt-4 text-4xl font-black tracking-tight text-[var(--text)]">
+            <h1 className="mt-4 text-4xl font-black text-[var(--text)]">
               User Management
             </h1>
             <p className="mt-2 text-sm text-[var(--muted)]">

@@ -19,7 +19,7 @@ export default function AboutPage() {
       <section className="ringo-container py-16 lg:py-20">
         <div className="max-w-3xl space-y-5 fade-in-up">
           <div className="eyebrow">About Ringo</div>
-          <h1 className="text-4xl font-black tracking-tight text-[var(--text)] sm:text-5xl">
+          <h1 className="text-4xl font-black text-[var(--text)] sm:text-5xl">
             Built for teams that live in conversation.
           </h1>
           <p className="text-lg leading-8 text-[var(--muted)]">

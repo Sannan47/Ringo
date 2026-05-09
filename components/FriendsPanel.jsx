@@ -48,7 +48,7 @@ export default function FriendsPanel({
         <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
           <div>
             <div className="eyebrow">Friends</div>
-            <h2 className="mt-4 text-4xl font-black tracking-tight">
+            <h2 className="mt-4 text-4xl font-black">
               Manage connections
             </h2>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--muted)]">

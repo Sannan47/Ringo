@@ -52,7 +52,7 @@ export default function Navbar() {
       <div className="ringo-container flex items-center justify-between py-4">
         <Link
           href="/"
-          className="flex items-center gap-3 text-lg font-bold tracking-tight text-[var(--text)]"
+          className="flex items-center gap-3 text-lg font-bold text-[var(--text)]"
         >
           <span className="brand-mark">R</span>
           <span>Ringo</span>

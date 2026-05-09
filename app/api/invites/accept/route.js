@@ -45,7 +45,7 @@ export async function POST(request) {
       { message: "Joined server", serverId: invite.serverId.toString() },
       { status: 200 }
     );
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
   }
 }

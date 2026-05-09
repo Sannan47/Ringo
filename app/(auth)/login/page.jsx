@@ -68,7 +68,7 @@ export default function LoginPage() {
         setUser(data.user);
       }
       router.push(data?.user?.role === "admin" ? "/admin" : "/dashboard");
-    } catch (error) {
+    } catch {
       setServerError("Something went wrong. Please try again.");
     } finally {
       setIsSubmitting(false);
@@ -80,7 +80,7 @@ export default function LoginPage() {
       <div className="ringo-container grid min-h-[calc(100vh-76px)] items-center gap-10 py-12 lg:grid-cols-[0.95fr_1.05fr]">
         <div className="max-w-md space-y-5 fade-in-up lg:order-2">
           <div className="eyebrow">Welcome back</div>
-          <h1 className="text-4xl font-black leading-tight tracking-tight text-[var(--text)]">
+          <h1 className="text-4xl font-black leading-tight text-[var(--text)]">
             Log in and get straight back to the room.
           </h1>
           <p className="text-base leading-7 text-[var(--muted)]">

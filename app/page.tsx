@@ -40,7 +40,7 @@ export default function Home() {
         <div className="space-y-7 fade-in-up">
           <div className="eyebrow">Discord-inspired, startup-polished</div>
           <div className="space-y-5">
-            <h1 className="max-w-3xl text-5xl font-black leading-[1.02] tracking-tight text-[var(--text)] sm:text-6xl lg:text-7xl">
+            <h1 className="max-w-3xl text-5xl font-black leading-[1.02] text-[var(--text)] sm:text-6xl lg:text-7xl">
               Ringo brings team chat into sharper focus.
             </h1>
             <p className="max-w-2xl text-lg leading-8 text-[var(--muted)]">

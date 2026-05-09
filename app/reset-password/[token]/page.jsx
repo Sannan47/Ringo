@@ -48,7 +48,7 @@ export default function ResetPasswordPage() {
       setTimeout(() => {
         router.push("/login");
       }, 1200);
-    } catch (err) {
+    } catch {
       setError("Unable to reset password");
     } finally {
       setIsSubmitting(false);

@@ -3,9 +3,96 @@
 import { useEffect, useMemo, useState } from "react";
 import Sidebar from "../../components/Sidebar";
 import ChatPanel from "../../components/ChatPanel";
+import FriendsSidebar from "../../components/FriendsSidebar";
 import useSocket from "../../hooks/useSocket";
 import { useAuth } from "../../context/AuthContext";
-import FriendsPanel from "../../components/FriendsPanel";
+
+function CloseIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-4 w-4"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M18 6 6 18" />
+      <path d="m6 6 12 12" />
+    </svg>
+  );
+}
+
+function CreateServerModal({
+  name,
+  error,
+  isSubmitting,
+  onNameChange,
+  onClose,
+  onSubmit,
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 px-4 py-6">
+      <form
+        onSubmit={onSubmit}
+        className="modal-surface w-full max-w-md rounded-lg border border-[var(--border)] bg-[var(--surface-solid)] p-5 text-[var(--text)] shadow-[var(--shadow-md)]"
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.14em] text-[var(--faint)]">
+              Server
+            </p>
+            <h2 className="mt-1 text-2xl font-black">
+              Create server
+            </h2>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="icon-button h-9 w-9"
+            aria-label="Close create server"
+          >
+            <CloseIcon />
+          </button>
+        </div>
+
+        <label className="mt-5 block text-sm font-bold text-[var(--text-soft)]">
+          Server name
+        </label>
+        <input
+          type="text"
+          value={name}
+          onChange={(event) => onNameChange(event.target.value)}
+          className="field mt-2"
+          placeholder="Design team"
+          autoFocus
+        />
+        {error ? (
+          <p className="mt-2 text-xs font-semibold text-rose-600">{error}</p>
+        ) : null}
+
+        <div className="mt-5 flex justify-end gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="btn-secondary min-h-10 px-4 py-2 text-sm"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="btn-primary min-h-10 px-4 py-2 text-sm"
+          >
+            {isSubmitting ? "Creating..." : "Create"}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
 
 export default function DashboardPage() {
   const [servers, setServers] = useState([]);
@@ -24,8 +111,13 @@ export default function DashboardPage() {
   const [incomingRequests, setIncomingRequests] = useState([]);
   const [outgoingRequests, setOutgoingRequests] = useState([]);
   const [friends, setFriends] = useState([]);
+  const [onlineFriendIds, setOnlineFriendIds] = useState([]);
   const [onlineCount, setOnlineCount] = useState(0);
   const [typingUsers, setTypingUsers] = useState([]);
+  const [isCreateServerOpen, setIsCreateServerOpen] = useState(false);
+  const [createServerName, setCreateServerName] = useState("");
+  const [createServerError, setCreateServerError] = useState("");
+  const [isCreatingServer, setIsCreatingServer] = useState(false);
   const socket = useSocket(true);
   const { user } = useAuth();
 
@@ -44,7 +136,6 @@ export default function DashboardPage() {
   const canManageServer = Boolean(
     selectedServer && user && selectedServer.ownerId === user.userId
   );
-  const isFriendsView = viewMode === "friends";
 
   useEffect(() => {
     const loadServers = async () => {
@@ -63,7 +154,7 @@ export default function DashboardPage() {
             setSelectedServerId(normalized[0].id);
           }
         }
-      } catch (error) {
+      } catch {
         setServers([]);
       }
     };
@@ -84,7 +175,7 @@ export default function DashboardPage() {
         } else {
           setDmThreads([]);
         }
-      } catch (error) {
+      } catch {
         setDmThreads([]);
       } finally {
         setIsLoadingThreads(false);
@@ -104,7 +195,7 @@ export default function DashboardPage() {
         setOutgoingRequests(data.outgoing || []);
         setFriends(data.friends || []);
       }
-    } catch (error) {
+    } catch {
       setIncomingRequests([]);
       setOutgoingRequests([]);
       setFriends([]);
@@ -128,7 +219,7 @@ export default function DashboardPage() {
           setOutgoingRequests(data.outgoing || []);
           setFriends(data.friends || []);
         }
-      } catch (error) {
+      } catch {
         if (isMounted) {
           setIncomingRequests([]);
           setOutgoingRequests([]);
@@ -169,7 +260,7 @@ export default function DashboardPage() {
           setChannels([]);
           setSelectedChannelId(null);
         }
-      } catch (error) {
+      } catch {
         setChannels([]);
         setSelectedChannelId(null);
       } finally {
@@ -200,7 +291,7 @@ export default function DashboardPage() {
         } else {
           setMessages([]);
         }
-      } catch (error) {
+      } catch {
         setMessages([]);
       } finally {
         setIsLoadingMessages(false);
@@ -228,7 +319,7 @@ export default function DashboardPage() {
         } else {
           setDmMessages([]);
         }
-      } catch (error) {
+      } catch {
         setDmMessages([]);
       } finally {
         setIsLoadingDmMessages(false);
@@ -302,6 +393,29 @@ export default function DashboardPage() {
   }, [socket, selectedChannelId]);
 
   useEffect(() => {
+    if (!socket) {
+      return undefined;
+    }
+
+    const friendIds = friends.map((friend) => friend.id).filter(Boolean);
+
+    if (friendIds.length === 0) {
+      return undefined;
+    }
+
+    const handleFriendsPresence = ({ onlineUserIds } = {}) => {
+      setOnlineFriendIds(onlineUserIds || []);
+    };
+
+    socket.on("friends_presence", handleFriendsPresence);
+    socket.emit("watch_friends", { friendIds });
+
+    return () => {
+      socket.off("friends_presence", handleFriendsPresence);
+    };
+  }, [socket, friends]);
+
+  useEffect(() => {
     if (!socket || !selectedThreadId) {
       return undefined;
     }
@@ -339,18 +453,21 @@ export default function DashboardPage() {
     });
   };
 
-  const handleCreateServer = async () => {
-    const name = window.prompt("Server name");
+  const handleCreateServer = async (event) => {
+    event.preventDefault();
+    setCreateServerError("");
 
-    if (!name || !name.trim()) {
+    if (!createServerName.trim()) {
+      setCreateServerError("Server name is required");
       return;
     }
 
+    setIsCreatingServer(true);
     try {
       const response = await fetch("/api/servers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim() }),
+        body: JSON.stringify({ name: createServerName.trim() }),
       });
       const data = await response.json();
 
@@ -362,9 +479,15 @@ export default function DashboardPage() {
         };
         setServers((prev) => [newServer, ...prev]);
         setSelectedServerId(newServer.id);
+        setCreateServerName("");
+        setIsCreateServerOpen(false);
+      } else {
+        setCreateServerError(data?.error || "Unable to create server");
       }
-    } catch (error) {
-      // No-op for now.
+    } catch {
+      setCreateServerError("Unable to create server");
+    } finally {
+      setIsCreatingServer(false);
     }
   };
 
@@ -386,11 +509,11 @@ export default function DashboardPage() {
         try {
           await navigator.clipboard.writeText(link);
           window.alert("Invite link copied to clipboard.");
-        } catch (error) {
+        } catch {
           window.prompt("Copy this invite link:", link);
         }
       }
-    } catch (error) {
+    } catch {
       // No-op for now.
     }
   };
@@ -422,7 +545,7 @@ export default function DashboardPage() {
         setChannels((prev) => [newChannel, ...prev]);
         setSelectedChannelId(newChannel.id);
       }
-    } catch (error) {
+    } catch {
       // No-op for now.
     }
   };
@@ -455,7 +578,7 @@ export default function DashboardPage() {
           )
         );
       }
-    } catch (error) {
+    } catch {
       // No-op for now.
     }
   };
@@ -486,7 +609,7 @@ export default function DashboardPage() {
         setMessages([]);
         setSelectedChannelId(null);
       }
-    } catch (error) {
+    } catch {
       // No-op for now.
     }
   };
@@ -528,7 +651,7 @@ export default function DashboardPage() {
         await loadFriends();
         return true;
       }
-    } catch (error) {
+    } catch {
       return false;
     }
 
@@ -549,7 +672,7 @@ export default function DashboardPage() {
           setDmThreads(threadsData.threads || []);
         }
       }
-    } catch (error) {
+    } catch {
       // No-op for now.
     }
   };
@@ -563,7 +686,7 @@ export default function DashboardPage() {
       if (response.ok) {
         await loadFriends();
       }
-    } catch (error) {
+    } catch {
       // No-op for now.
     }
   };
@@ -589,7 +712,7 @@ export default function DashboardPage() {
           setViewMode("dm");
         }
       }
-    } catch (error) {
+    } catch {
       // No-op for now.
     }
   };
@@ -609,12 +732,8 @@ export default function DashboardPage() {
     setViewMode("channel");
   };
 
-  const handleShowFriends = () => {
-    setViewMode("friends");
-  };
-
   return (
-    <div className="flex w-full flex-1">
+    <div className="dashboard-workspace flex w-full flex-1 gap-2 p-2">
       <Sidebar
         servers={servers}
         dmThreads={dmThreads}
@@ -625,55 +744,64 @@ export default function DashboardPage() {
         onSelectServer={handleSelectServer}
         onSelectChannel={handleSelectChannel}
         onSelectThread={handleSelectThread}
-        onShowFriends={handleShowFriends}
-        onCreateServer={handleCreateServer}
+        onCreateServer={() => {
+          setCreateServerError("");
+          setCreateServerName("");
+          setIsCreateServerOpen(true);
+        }}
         onCreateChannel={handleCreateChannel}
         onRenameServer={handleRenameServer}
         onDeleteServer={handleDeleteServer}
         onCreateInvite={handleCreateInvite}
         isLoadingChannels={isLoadingChannels}
         canManageServer={canManageServer}
-        isFriendsView={isFriendsView}
       />
-      {viewMode === "friends" ? (
-        <FriendsPanel
-          incoming={incomingRequests}
-          outgoing={outgoingRequests}
-          friends={friends}
-          onSendRequest={handleSendRequest}
-          onAccept={handleAcceptRequest}
-          onReject={handleRejectRequest}
-          onStartDm={handleStartDm}
+      <ChatPanel
+        title={
+          viewMode === "dm"
+            ? selectedThread?.participant?.name
+            : selectedChannel
+            ? `#${selectedChannel.name}`
+            : "Select a channel"
+        }
+        statusLabel={
+          viewMode === "dm"
+            ? "Direct message"
+            : selectedChannel
+            ? `${onlineCount} online`
+            : "Idle"
+        }
+        messages={viewMode === "dm" ? dmMessages : messages}
+        isLoading={
+          viewMode === "dm"
+            ? isLoadingDmMessages || isLoadingThreads
+            : isLoadingMessages || isLoadingChannels
+        }
+        typingUsers={viewMode === "dm" ? [] : typingUsers}
+        onTyping={viewMode === "dm" ? null : handleTyping}
+        canSend={viewMode === "dm" ? Boolean(selectedThreadId) : Boolean(selectedChannelId)}
+        onSendMessage={viewMode === "dm" ? handleSendDm : handleSendMessage}
+      />
+      <FriendsSidebar
+        friends={friends}
+        incoming={incomingRequests}
+        outgoing={outgoingRequests}
+        onlineFriendIds={onlineFriendIds}
+        onSendRequest={handleSendRequest}
+        onAccept={handleAcceptRequest}
+        onReject={handleRejectRequest}
+        onStartDm={handleStartDm}
+      />
+      {isCreateServerOpen ? (
+        <CreateServerModal
+          name={createServerName}
+          error={createServerError}
+          isSubmitting={isCreatingServer}
+          onNameChange={setCreateServerName}
+          onClose={() => setIsCreateServerOpen(false)}
+          onSubmit={handleCreateServer}
         />
-      ) : (
-        <ChatPanel
-          title={
-            viewMode === "dm"
-              ? selectedThread?.participant?.name
-              : selectedChannel
-              ? `#${selectedChannel.name}`
-              : "Select a channel"
-          }
-          statusLabel={
-            viewMode === "dm"
-              ? "Direct message"
-              : selectedChannel
-              ? `${onlineCount} online`
-              : "Idle"
-          }
-          messages={viewMode === "dm" ? dmMessages : messages}
-          isLoading={
-            viewMode === "dm"
-              ? isLoadingDmMessages || isLoadingThreads
-              : isLoadingMessages || isLoadingChannels
-          }
-          onlineCount={onlineCount}
-          typingUsers={viewMode === "dm" ? [] : typingUsers}
-          onTyping={viewMode === "dm" ? null : handleTyping}
-          canSend={viewMode === "dm" ? Boolean(selectedThreadId) : Boolean(selectedChannelId)}
-          onSendMessage={viewMode === "dm" ? handleSendDm : handleSendMessage}
-        />
-      )}
+      ) : null}
     </div>
   );
 }
