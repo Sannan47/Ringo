@@ -4,8 +4,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const rtcConfig = {
   iceServers: [
+    // STUN servers (always work on same network)
     { urls: "stun:stun.l.google.com:19302" },
     { urls: "stun:stun1.l.google.com:19302" },
+    { urls: "stun:stun2.l.google.com:19302" },
+    { urls: "stun:stun3.l.google.com:19302" },
+    { urls: "stun:stun4.l.google.com:19302" },
+    
+    // Primary TURN server (free tier)
     {
       urls: "turn:openrelay.metered.ca:80",
       username: "openrelayproject",
@@ -13,10 +19,35 @@ const rtcConfig = {
     },
     {
       urls: "turn:openrelay.metered.ca:443",
-      username: "openrelayproject", 
+      username: "openrelayproject",
+      credential: "openrelayproject",
+    },
+    
+    // Fallback TURN servers (free alternatives)
+    {
+      urls: "turn:relay.metered.ca:80",
+      username: "openrelayproject",
+      credential: "openrelayproject",
+    },
+    {
+      urls: "turn:relay.metered.ca:443",
+      username: "openrelayproject",
+      credential: "openrelayproject",
+    },
+    
+    // Another free TURN option
+    {
+      urls: "turn:a.relay.metered.ca:80",
+      username: "openrelayproject",
+      credential: "openrelayproject",
+    },
+    {
+      urls: "turn:a.relay.metered.ca:443",
+      username: "openrelayproject",
       credential: "openrelayproject",
     },
   ],
+  iceCandidatePoolSize: 10,
 };
 
 const createEmptyState = () => ({
@@ -106,6 +137,14 @@ export default function useWebRTC({ socket, roomId, currentUser }) {
 
       peer.oniceconnectionstatechange = () => {
         console.log("[WebRTC] ICE connection state changed:", peer.iceConnectionState);
+        
+        // Log ICE candidates for debugging
+        if (peer.iceConnectionState === "failed") {
+          console.error("[WebRTC] ICE failed - candidates info:", {
+            localCandidates: peer.getStats ? "check chrome://webrtc-internals" : "N/A",
+            turnServers: rtcConfig.iceServers.filter(s => s.urls.includes("turn")).length,
+          });
+        }
       };
 
       peer.ontrack = (event) => {
@@ -128,8 +167,24 @@ export default function useWebRTC({ socket, roomId, currentUser }) {
 
       peer.onconnectionstatechange = () => {
         console.log("[WebRTC] Connection state changed:", peer.connectionState);
+        
         if (["failed", "closed", "disconnected"].includes(peer.connectionState)) {
-          console.log("[WebRTC] Closing peer due to connection state:", peer.connectionState);
+          console.log(
+            "[WebRTC] Peer connection", peer.connectionState,
+            "- ICE state:", peer.iceConnectionState,
+            "- Signaling state:", peer.signalingState
+          );
+          
+          if (peer.connectionState === "failed") {
+            console.error(
+              "[WebRTC] Connection failed. Possible causes:",
+              "1. TURN server overloaded/unreachable",
+              "2. Firewall blocking UDP/TCP 3478-3479",
+              "3. Symmetric NAT not compatible with TURN",
+              "4. Network connectivity issue"
+            );
+          }
+          
           closePeer(peerSocketId);
         }
       };
