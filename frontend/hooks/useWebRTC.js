@@ -4,8 +4,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const rtcConfig = {
   iceServers: [
+    // STUN servers (always work on same network)
     { urls: "stun:stun.l.google.com:19302" },
     { urls: "stun:stun1.l.google.com:19302" },
+    { urls: "stun:stun2.l.google.com:19302" },
+    { urls: "stun:stun3.l.google.com:19302" },
+    { urls: "stun:stun4.l.google.com:19302" },
+    
+    // Primary TURN server (free tier)
     {
       urls: "turn:openrelay.metered.ca:80",
       username: "openrelayproject",
@@ -13,10 +19,35 @@ const rtcConfig = {
     },
     {
       urls: "turn:openrelay.metered.ca:443",
-      username: "openrelayproject", 
+      username: "openrelayproject",
+      credential: "openrelayproject",
+    },
+    
+    // Fallback TURN servers (free alternatives)
+    {
+      urls: "turn:relay.metered.ca:80",
+      username: "openrelayproject",
+      credential: "openrelayproject",
+    },
+    {
+      urls: "turn:relay.metered.ca:443",
+      username: "openrelayproject",
+      credential: "openrelayproject",
+    },
+    
+    // Another free TURN option
+    {
+      urls: "turn:a.relay.metered.ca:80",
+      username: "openrelayproject",
+      credential: "openrelayproject",
+    },
+    {
+      urls: "turn:a.relay.metered.ca:443",
+      username: "openrelayproject",
       credential: "openrelayproject",
     },
   ],
+  iceCandidatePoolSize: 10,
 };
 
 const createEmptyState = () => ({
@@ -82,10 +113,12 @@ export default function useWebRTC({ socket, roomId, currentUser }) {
         return existing;
       }
 
+      console.log("[WebRTC] Creating peer connection with", peerSocketId);
       const peer = new RTCPeerConnection(rtcConfig);
       peersRef.current.set(peerSocketId, peer);
 
       localStreamRef.current?.getTracks().forEach((track) => {
+        console.log("[WebRTC] Adding local track:", track.kind);
         peer.addTrack(track, localStreamRef.current);
       });
 
@@ -94,6 +127,7 @@ export default function useWebRTC({ socket, roomId, currentUser }) {
           return;
         }
 
+        console.log("[WebRTC] ICE candidate gathered:", event.candidate.candidate.substring(0, 50) + "...");
         socket.emit("ice-candidate", {
           to: peerSocketId,
           roomId: roomIdRef.current,
@@ -101,13 +135,27 @@ export default function useWebRTC({ socket, roomId, currentUser }) {
         });
       };
 
+      peer.oniceconnectionstatechange = () => {
+        console.log("[WebRTC] ICE connection state changed:", peer.iceConnectionState);
+        
+        // Log ICE candidates for debugging
+        if (peer.iceConnectionState === "failed") {
+          console.error("[WebRTC] ICE failed - candidates info:", {
+            localCandidates: peer.getStats ? "check chrome://webrtc-internals" : "N/A",
+            turnServers: rtcConfig.iceServers.filter(s => s.urls.includes("turn")).length,
+          });
+        }
+      };
+
       peer.ontrack = (event) => {
         const [remoteStream] = event.streams;
 
         if (!remoteStream) {
+          console.warn("[WebRTC] Received track but no stream");
           return;
         }
 
+        console.log("[WebRTC] Received remote track:", event.track.kind);
         setState((current) => ({
           ...current,
           remoteStreams: {
@@ -118,7 +166,25 @@ export default function useWebRTC({ socket, roomId, currentUser }) {
       };
 
       peer.onconnectionstatechange = () => {
+        console.log("[WebRTC] Connection state changed:", peer.connectionState);
+        
         if (["failed", "closed", "disconnected"].includes(peer.connectionState)) {
+          console.log(
+            "[WebRTC] Peer connection", peer.connectionState,
+            "- ICE state:", peer.iceConnectionState,
+            "- Signaling state:", peer.signalingState
+          );
+          
+          if (peer.connectionState === "failed") {
+            console.error(
+              "[WebRTC] Connection failed. Possible causes:",
+              "1. TURN server overloaded/unreachable",
+              "2. Firewall blocking UDP/TCP 3478-3479",
+              "3. Symmetric NAT not compatible with TURN",
+              "4. Network connectivity issue"
+            );
+          }
+          
           closePeer(peerSocketId);
         }
       };
@@ -135,16 +201,19 @@ export default function useWebRTC({ socket, roomId, currentUser }) {
       }
 
       try {
+        console.log("[WebRTC] Making offer to", peerSocketId);
         const peer = createPeerConnection(peerSocketId);
         const offer = await peer.createOffer();
         await peer.setLocalDescription(offer);
+        console.log("[WebRTC] Offer created and local description set, sending to", peerSocketId);
 
         socket.emit("offer", {
           to: peerSocketId,
           roomId: roomIdRef.current,
           offer,
         });
-      } catch {
+      } catch (error) {
+        console.error("[WebRTC] Failed to make offer:", error.message);
         setError("Could not connect to a voice peer.");
         closePeer(peerSocketId);
       }
@@ -161,8 +230,10 @@ export default function useWebRTC({ socket, roomId, currentUser }) {
     setState((current) => ({ ...current, isJoining: true, error: "" }));
 
     try {
+      console.log("[WebRTC] Requesting microphone access for room:", roomId);
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       localStreamRef.current = stream;
+      console.log("[WebRTC] Microphone access granted, audio tracks:", stream.getAudioTracks().length);
 
       const result = await new Promise((resolve) => {
         socket.emit("join-voice-room", { roomId }, resolve);
@@ -179,6 +250,7 @@ export default function useWebRTC({ socket, roomId, currentUser }) {
         return false;
       }
 
+      console.log("[WebRTC] Successfully joined voice room, participants:", result.users?.length || 0);
       setState((current) => ({
         ...current,
         isConnected: true,
@@ -191,6 +263,7 @@ export default function useWebRTC({ socket, roomId, currentUser }) {
       return true;
     } catch (error) {
       cleanupMedia();
+      console.error("[WebRTC] Failed to join voice room:", error.message);
       setState((current) => ({
         ...current,
         isConnected: false,
@@ -273,16 +346,34 @@ export default function useWebRTC({ socket, roomId, currentUser }) {
       }
 
       try {
+        console.log("[WebRTC] Received offer from", from);
         const peer = createPeerConnection(from);
         await peer.setRemoteDescription(new RTCSessionDescription(offer));
+        console.log("[WebRTC] Remote description set from offer, peer connection state:", peer.connectionState);
+        
+        // Process any pending ICE candidates
+        if (peer._pendingCandidates && peer._pendingCandidates.length > 0) {
+          console.log("[WebRTC] Processing", peer._pendingCandidates.length, "pending ICE candidates");
+          for (const candidate of peer._pendingCandidates) {
+            try {
+              await peer.addIceCandidate(candidate);
+            } catch (e) {
+              console.error("[WebRTC] Failed to add pending candidate:", e.message);
+            }
+          }
+          peer._pendingCandidates = [];
+        }
+        
         const answer = await peer.createAnswer();
         await peer.setLocalDescription(answer);
+        console.log("[WebRTC] Sending answer to", from);
         socket.emit("answer", {
           to: from,
           roomId: eventRoomId,
           answer,
         });
-      } catch {
+      } catch (error) {
+        console.error("[WebRTC] Failed to handle offer:", error.message);
         setError("Could not answer a voice peer.");
         closePeer(from);
       }
@@ -296,9 +387,25 @@ export default function useWebRTC({ socket, roomId, currentUser }) {
       try {
         const peer = peersRef.current.get(from);
         if (peer) {
+          console.log("[WebRTC] Received answer from", from);
           await peer.setRemoteDescription(new RTCSessionDescription(answer));
+          console.log("[WebRTC] Remote description set from answer, peer connection state:", peer.connectionState);
+          
+          // Process any pending ICE candidates
+          if (peer._pendingCandidates && peer._pendingCandidates.length > 0) {
+            console.log("[WebRTC] Processing", peer._pendingCandidates.length, "pending ICE candidates");
+            for (const candidate of peer._pendingCandidates) {
+              try {
+                await peer.addIceCandidate(candidate);
+              } catch (e) {
+                console.error("[WebRTC] Failed to add pending candidate:", e.message);
+              }
+            }
+            peer._pendingCandidates = [];
+          }
         }
-      } catch {
+      } catch (error) {
+        console.error("[WebRTC] Failed to handle answer:", error.message);
         setError("Could not finish voice connection.");
         closePeer(from);
       }
@@ -314,9 +421,35 @@ export default function useWebRTC({ socket, roomId, currentUser }) {
       }
 
       try {
-        const peer = createPeerConnection(from);
-        await peer.addIceCandidate(new RTCIceCandidate(candidate));
-      } catch {
+        const peer = peersRef.current.get(from);
+        
+        if (!peer) {
+          console.warn(
+            "[WebRTC] ICE candidate received before peer connection created, creating peer",
+            { from }
+          );
+          // Create peer if it doesn't exist yet (candidate might arrive first)
+          createPeerConnection(from);
+          return;
+        }
+
+        // Only add candidate if remote description is set
+        if (peer.remoteDescription) {
+          console.debug("[WebRTC] Adding ICE candidate from", from);
+          await peer.addIceCandidate(new RTCIceCandidate(candidate));
+        } else {
+          console.warn(
+            "[WebRTC] ICE candidate received before remote description set, queueing",
+            { from }
+          );
+          // Store for later processing once remote description is set
+          if (!peer._pendingCandidates) {
+            peer._pendingCandidates = [];
+          }
+          peer._pendingCandidates.push(new RTCIceCandidate(candidate));
+        }
+      } catch (error) {
+        console.error("[WebRTC] Failed to add ICE candidate:", error.message);
         setError("Voice network connection failed.");
       }
     };
